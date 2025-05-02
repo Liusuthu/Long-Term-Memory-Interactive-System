@@ -83,15 +83,12 @@ def qwen3_generate(tokenizer, model, messages, thinking=True):
 
 
 
+# tok, llm = load_llm_model("Llama-3.2-1B-Instruct")
 
+# prompt = "A+B=3, B+C=5, known that A=1, C=?."
+# messages = [
+#     {"role": "system", "content": "You are Qwen, created by Alibaba Cloud. You are a helpful assistant."},
+#     {"role": "user", "content": prompt}
+# ]
 
-
-tok, llm = load_llm_model("Llama-3.2-1B-Instruct")
-
-prompt = "A+B=3, B+C=5, known that A=1, C=?."
-messages = [
-    {"role": "system", "content": "You are Qwen, created by Alibaba Cloud. You are a helpful assistant."},
-    {"role": "user", "content": prompt}
-]
-
-print(llm_generate(tok,llm,messages))
+# print(llm_generate(tok,llm,messages))
