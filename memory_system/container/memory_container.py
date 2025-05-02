@@ -37,8 +37,8 @@ class Round:
         return f"Round(\n  user={self.user[:20]!r}..., \n  assistant={self.assistant[:20]!r}...,\n  round_keys={self.round_keys},\n  round_facts={self.round_facts} \n)"
 
     def show_round(self):
-        print(colored("User:",color="cyan",),f"{self.user}")
-        print(colored("Assistant:",color="cyan",),f"{self.assistant}")
+        print(colored("User:",color="cyan",attrs=["bold"]),f"{self.user}")
+        print(colored("Assistant:",color="cyan",attrs=["bold"]),f"{self.assistant}")
 
 
     def extract_keys(self, llm_extractor):
