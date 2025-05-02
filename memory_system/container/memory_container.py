@@ -1,5 +1,9 @@
+"The memory storage structure of our memory system"
+
 import types
 from termcolor import colored
+
+
 
 class Round:
     "A round between a user and an assistant."
