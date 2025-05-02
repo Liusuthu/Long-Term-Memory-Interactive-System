@@ -97,7 +97,15 @@ class Session:
 
 
 class Conversation:
-    ...
+    def __init__(self,):
+        """
+        A full between a user and an assistant.
+        Args:
+            message (list): A list of two dictionaries, one for the user and one for the assistant.
+                            Each dictionary must contain 'role' and 'content'.
+            extract_keys (bool): If True, extract a key from the assistant's message using llm_extractor.
+            llm_extractor: An LLM to act as a key-extractor
+        """
 
 
 
@@ -107,8 +115,8 @@ msg=[
     {"role": "assistant", "content": "I'm fine, thank you! How can I assist you today?"}
 ]
 round = Round(msg)
-print(round)
-round.show_round()
+# print(round)
+# round.show_round()
 
 
 sess=[
