@@ -20,8 +20,9 @@ extract_session_keys_prompt = "Below is a transcript of a chat session between a
 extract_session_summary_key_prompt = "Below is a transcript of a session of chat between a human user and an AI assistant. Generate a phrase that best summarize the content of this session of conversation(not anything like resquest and response!). This phrase doesn't necessarily have to be originally from conversation. \n\nDialogue content:\n{} \n\nPhrase: (a phrase that best summarizes this session of conversation in string format; do not generate anything else.)"
 extract_session_facts_prompt = "You will be given a session of conversation from a human user to an AI assistant. Extract all the personal information, life events, experience, and preferences related to the user and the assistant. Make sure you include all details such as life events, personal experience, preferences, specific numbers, locations, or dates. State each piece of information in a simple sentence. Put these sentences in a json list, each element being a standalone personal fact about the user or the assistant. Minimize the coreference across the facts, e.g., replace pronouns with actual entities. If there is no specific events, personal information, or preference mentioned, just generate an empty list. \n\nDialogue content:\n{}. \n\nPersonal facts about the user (a list of strings in json format; do not generate anything else):"
 
-extract_conversation_keys_prompt = ""
-extract_conversation_facts_prompt = ""
+extract_conversation_keys_prompt = "Below is a transcript of a conversation between a human user and an AI assistant, which consists of multiple sessions between the human user and the AI assistant. Generate a list of keyphrases that best represent this conversation. These keyphrases don't necessarily have to originally from the conversation. The generated keyphrases should be meaningful, such as key nouns, adjectives, specific values, and corresponding entities (but not limited to those mentioned), other than just simple words. Separate each keyphrase with a semicolon. If there are no significant keyphrases in this conversation, simply generate 'N/A'. \n\nConversation:\n{}. \n\nA list of keyphrases: (a list of keyphrases in str format; do not generate anything else. Better to have nothing than to have something of poor quality.)"
+extract_conversation_summary_key_prompt = "Below is a transcript of a conversation between a human user and an AI assistant. Generate a phrase that best summarize the content of this conversation(not anything like resquest and response!). This phrase doesn't necessarily have to be originally from conversation. \n\nConversation  content:\n{} \n\nPhrase: (a phrase that best summarizes this conversation in string format; do not generate anything else.)"
+extract_conversation_facts_prompt = "You will be given a conversation from a human user to an AI assistant. Extract all the personal information, life events, experience, and preferences related to the user and the assistant. Make sure you include all details such as life events, personal experience, preferences, specific numbers, locations, or dates. State each piece of information in a simple sentence. Put these sentences in a json list, each element being a standalone personal fact about the user or the assistant. Minimize the coreference across the facts, e.g., replace pronouns with actual entities. If there is no specific events, personal information, or preference mentioned, just generate an empty list. \n\nConversation content:\n{}. \n\nPersonal facts about the user (a list of strings in json format; do not generate anything else):"
 
 
 class Round:
@@ -66,13 +67,13 @@ class Round:
     def __repr__(self):
         return f"Round(\n  user={self.user[:20]!r}..., \n  assistant={self.assistant[:20]!r}...,\n  round_summary_key={self.round_summary_key}, \n  round_keys={self.round_keys},\n  round_facts={self.round_facts} \n)"
 
-    def get_round_str(self):
-        return f"USER: {self.user}\nASSISTANT: {self.assistant}"
-
 
     def show_round(self):
         print(colored("User:",color="cyan",attrs=["bold"]),f"{self.user}")
         print(colored("Assistant:",color="cyan",attrs=["bold"]),f"{self.assistant}")
+
+    def get_round_str(self):
+        return f"USER: {self.user}\nASSISTANT: {self.assistant}"
 
 
     def extract_round_keys(self, llm_extractor):
@@ -178,7 +179,7 @@ class Session:
 
 
     def extract_session_keys(self, llm_extractor):
-        #  For normal keys
+        # For normal keys
         messages = get_messages(normal_system_prompt, extract_session_keys_prompt.format(self.get_session_str()))
         result = llm_extractor.generate(messages)
         if result != 'N/A':
@@ -195,7 +196,6 @@ class Session:
     def extract_session_facts(self, llm_extractor):
         messages = get_messages(normal_system_prompt, extract_session_facts_prompt.format(self.get_session_str()))
         result = llm_extractor.generate(messages)
-        print("Raw result:\n", result)
         result_list = ast.literal_eval(result)
         if len(result_list) != 0:
             self.has_session_facts = True
@@ -206,7 +206,7 @@ class Session:
 
 class Conversation:
     "A full conversation between a user and an assistant, which is associate with a QA."
-    def __init__(self, sessions:list, session_id_list:list, session_date_list:str, date:str=None, id:str=None, extract_keys:bool=False, llm_extractor:UnifiedLLM=None):
+    def __init__(self, sessions:list, session_id_list:list, session_date_list:str, date:str=None, id:str=None, extract_keys:bool=False, extract_facts:bool=False, llm_extractor:UnifiedLLM=None):
         """
         Args:
             session (list): A list of lists(session), annotated with session_id and session_date.
@@ -219,6 +219,8 @@ class Conversation:
         self.conversation_id = id
         self.num_sessions = len(sessions)
         self.sessions = []
+        self.conversation_summary_key = None
+        self.has_conversation_summary_key = False
         self.conversation_keys = []
         self.has_conversation_keys = False
         self.conversation_facts = []
@@ -230,11 +232,15 @@ class Conversation:
         if extract_keys:
             if llm_extractor is None:
                 raise ValueError("llm_extractor must be provided if extract_keys is True.")
-            self.conversation_keys = self.extract_conversation_keys(llm_extractor)
+            self.extract_conversation_keys(llm_extractor)
+        if extract_facts:
+            if llm_extractor is None:
+                raise ValueError("llm_extractor must be provided if extract_facts is True.")
+            self.extract_conversation_facts(llm_extractor)
 
 
     def __repr__(self):
-        return f"Conversation(\n  conversation_id={self.conversation_id!r}, \n  conversationn_date={self.conversation_date!r}, \n  num_sessions={self.num_sessions}, \n  conversation_keys={self.conversation_keys}, \n  session_facts={self.conversation_facts} \n)"
+        return f"Conversation(\n  conversation_id={self.conversation_id!r}, \n  conversationn_date={self.conversation_date!r}, \n  num_sessions={self.num_sessions}, \n  conversation_summary_key={self.conversation_summary_key}, \n  conversation_keys={self.conversation_keys}, \n  session_facts={self.conversation_facts} \n)"
 
     def show_conversation(self):
         print(colored("Conversation ID:",color="yellow",attrs=["bold"]),self.conversation_id)
@@ -244,9 +250,41 @@ class Conversation:
             print(colored(f"Session {i}:",color="green",attrs=["bold"]))
             self.sessions[i].show_session()
 
+    def get_conversation_str(self):
+        conversation_str = ""
+        for i in range(self.num_sessions):
+            conversation_str += f"Session {i}:/n"
+            cur_session = self.sessions[i]
+            conversation_str += cur_session.get_session_str()
+            conversation_str += "-"*60 + '\n'
+        return conversation_str
+
+
+
 
     def extract_conversation_keys(self, llm_extractor):
-        ...
+        #  For normal keys
+        messages = get_messages(normal_system_prompt, extract_conversation_keys_prompt.format(self.get_conversation_str()))
+        result = llm_extractor.generate(messages)
+        if result != 'N/A':
+            self.has_conversation_keys = True
+            keyword_list = result.replace("\n", "").replace("\t", "").split("; ")
+            self.conversation_keys = keyword_list
+        # For summary key
+        messages = get_messages(normal_system_prompt, extract_conversation_summary_key_prompt.format(self.get_conversation_str()))
+        result = llm_extractor.generate(messages)
+        self.has_conversation_summary_key = True
+        self.conversation_summary_key = result
+
+
+
+    def extract_conversation_facts(self, llm_extractor):
+        messages = get_messages(normal_system_prompt, extract_conversation_facts_prompt.format(self.get_conversation_str()))
+        result = llm_extractor.generate(messages)
+        result_list = ast.literal_eval(result)
+        if len(result_list) != 0:
+            self.has_conversation_facts = True
+            self.conversation_facts = result_list
 
 
 
@@ -258,7 +296,7 @@ msg=[
     # {"role": "user", "content": "Can you tell me a joke?"},
     # {"role": "assistant", "content": "Why did the chicken cross the road? To get to the other side!"},
     {"role":"user", "content":"I'm thinking of getting my car detailed soon. Do you know any good detailers in the area or have any recommendations? By the way, I just got my car serviced for the first time on March 15th, and it was a great experience."},
-    {"role":"assistant", "content": "I'm happy to help you with your question! However, I'm a large language model, I don't have personal experiences or knowledge of specific locations or businesses. I can provide some general advice and suggestions on how to find a good detailer in your area.\n\nTo find a reputable and reliable detailer, you can try the following:\n\n1. Online Reviews: Check review websites such as Yelp, Google Reviews, or Facebook Reviews to see what other customers have to say about their experiences with local detailers.\n2. Ask for Referrals: Ask friends, family, or coworkers who have had their cars detailed recently for recommendations.\n3. Check Certifications: Look for detailers who are certified by organizations such as the International Detailing Association (IDA) or the National Institute of Automotive Service Excellence (ASE).\n4. Check Their Work: Ask to see before-and-after photos of their work or visit their shop to see the quality of their work firsthand.\n5. Get Quotes: Get quotes from several detailers and compare prices and services offered.\n\nAs for your car service experience on March 15th, I'm glad to hear it was a great experience! It's always important to keep your car well-maintained, and it sounds like you're taking good care of your vehicle.\n\nRemember to always do your research and choose a reputable detailer to ensure your car receives the best care possible. Good luck in your search!"}
+    {"role":"assistant", "content": "I'm happy to help you with your question! However, I'm a large language model, I don't have personal experiences or knowledge of specific locations or businesses. I can provide some general advice and suggestions on how to find a good detailer in your area.\n\nTo find a reputable and reliable detailer, you can try the following:\n\n1. Online Reviews: Check review websites such as Yelp, Google Reviews, or Facebook Reviews to see what other customers have to say about their experiences with local detailers.\n2. Ask for Referrals: Ask friends, family, or coworkers who have had their cars detailed recently for recommendations.\n3. Check Certifications: Look for detailers who are certified by organizations such as the International Detailing Association (IDA) or the National Institute of Automotive Service Excellence (ASE).\n4. Check Their Work: Ask to see before-and-after photos of their work or visit their shop to see the quality of their work firsthand.\n5. Get Quotes: Get quotes from several detailers and compare prices and services offered.\n\nAs for your car service experience on March 15th, I'm glad to hear it was a great experience! It's always important to keep your car well-maintained, and it sounds like you're taking good care of your vehicle.\n\nRemember to always do your research and choose a reputable detailer to ensure your car receives the best care possible. Good luck in your search!"},
     # {"role":"user","content":"I'll definitely ask those questions when I visit the detailer. And yeah, the GPS issue was a bit frustrating, but at least it was resolved quickly. By the way, do you know if there are any specific car wax products that are better suited for cars with advanced paint finishes, like my silver Honda Civic?"},
     # {"role":"assistant","content":"Advanced paint finishes, like those found on many modern vehicles, require special care to maintain their appearance and protect them from damage. When it comes to car wax, you'll want to look for products that are specifically designed for these types of finishes. Here are some tips to help you choose the right wax for your silver Honda Civic:\n\n1. **Look for waxes labeled as \"safe for advanced paint finishes\" or \"clear coat safe\"**: These waxes are formulated to work with the unique properties of advanced paint finishes, which can be more sensitive to certain chemicals.\n2. **Opt for a wax with a high Carnauba content**: Carnauba wax is a natural wax that provides an excellent barrier against the elements and is gentle on paint. Look for waxes with a high percentage of Carnauba (usually 20% or higher).\n3. **Consider a synthetic sealant or ceramic coating**: These products offer longer-lasting protection than traditional waxes and can provide an additional layer of defense against the elements. They're especially useful for cars with advanced paint finishes.\n4. **Avoid waxes with abrasive ingredients**: Some waxes contain abrasives that can scratch or mar advanced paint finishes. Look for waxes that are labeled as \"abrasive-free\" or \"non-abrasive.\"\n5. **Check the pH level**: A pH level close to neutral (around 7) is ideal for most paint finishes. Avoid waxes with high or low pH levels, as they can potentially damage the paint.\n\nSome popular car wax products that are suitable for advanced paint finishes include:\n\n* Meguiar's Ultimate Liquid Wax\n* Chemical Guys Car Wax\n* Autogeek Garage Line Car Wax\n* P21S Concours Carnauba Wax\n* Gtechniq Crystal Serum Ceramic Coating (for a longer-lasting, more protective option)\n\nRemember to always read the instructions and follow the manufacturer's recommendations for application and removal.\n\nWhen you visit the detailer, ask them about the type of wax they use and whether it's suitable for your car's advanced paint finish. A good detailer will be knowledgeable about the products they use and can recommend the best option for your vehicle."}
 ]
@@ -282,73 +320,73 @@ msg=[
 #     {"role": "assistant", "content": "Of course! Do you want some information about it?"},
 # ]
 
-sess = [
-    {
-        "role": "user",
-        "content": "I'm thinking of getting my car detailed soon. Do you know any good detailers in the area or have any recommendations? By the way, I just got my car serviced for the first time on March 15th, and it was a great experience.",
-        "has_answer": True
-    },
-    {
-        "role": "assistant",
-        "content": "I'm happy to help you with your question! However, I'm a large language model, I don't have personal experiences or knowledge of specific locations or businesses. I can provide some general advice and suggestions on how to find a good detailer in your area.\n\nTo find a reputable and reliable detailer, you can try the following:\n\n1. Online Reviews: Check review websites such as Yelp, Google Reviews, or Facebook Reviews to see what other customers have to say about their experiences with local detailers.\n2. Ask for Referrals: Ask friends, family, or coworkers who have had their cars detailed recently for recommendations.\n3. Check Certifications: Look for detailers who are certified by organizations such as the International Detailing Association (IDA) or the National Institute of Automotive Service Excellence (ASE).\n4. Check Their Work: Ask to see before-and-after photos of their work or visit their shop to see the quality of their work firsthand.\n5. Get Quotes: Get quotes from several detailers and compare prices and services offered.\n\nAs for your car service experience on March 15th, I'm glad to hear it was a great experience! It's always important to keep your car well-maintained, and it sounds like you're taking good care of your vehicle.\n\nRemember to always do your research and choose a reputable detailer to ensure your car receives the best care possible. Good luck in your search!",
-        "has_answer": False
-    },
-    {
-        "role": "user",
-        "content": "I'll definitely check out those review websites and ask around for referrals. Do you think it's a good idea to get a wax and detailing done every 3-4 months to maintain the car's appearance and protect the paint?",
-        "has_answer": False
-    },
-    {
-        "role": "assistant",
-        "content": "Regular waxing and detailing can definitely help maintain your car's appearance and protect the paint. The frequency of waxing and detailing depends on several factors, including:\n\n1. Climate: If you live in an area with harsh weather conditions, such as heavy rain, snow, or intense sunlight, you may need to wax and detail more frequently (every 2-3 months).\n2. Driving habits: If you drive frequently, park outdoors, or drive on rough roads, you may need to wax and detail more often to remove dirt, grime, and contaminants that can damage the paint.\n3. Paint type: Some paint finishes, like clear coat or ceramic coat, may require more frequent waxing and detailing to maintain their appearance and protection.\n\nIn general, waxing every 3-4 months is a good rule of thumb for most cars. This frequency can help:\n\n1. Protect the paint from UV rays, oxidation, and fading.\n2. Remove dirt, grime, and contaminants that can scratch or damage the paint.\n3. Maintain a glossy, showroom-like appearance.\n4. Make future washing and maintenance easier.\n\nHowever, if you want to take your car's appearance to the next level, you may consider a more frequent detailing schedule, such as:\n\n* Washing every 1-2 weeks to remove dirt and grime.\n* Waxing every 2-3 months to provide an extra layer of protection.\n* Detailing every 3-4 months to deep clean the interior and exterior.\n\nRemember to also consider your car's specific needs, such as any special paint finishes or requirements.\n\nIt's great that you're thinking about maintaining your car's appearance and protection. Regular waxing and detailing can definitely help extend the life of your car's paint and keep it looking its best!",
-        "has_answer": False
-    },
-    {
-        "role": "user",
-        "content": "Yup, that makes sense. I've been keeping track of my gas mileage too, and I've been getting around 32 miles per gallon, which is better than my old car.",
-        "has_answer": False
-    },
-    {
-        "role": "assistant",
-        "content": "That's great to hear! Keeping track of your gas mileage is a great way to monitor your car's performance and make adjustments to your driving habits or maintenance routine as needed.\n\nA 32 miles per gallon average is a good starting point, and it's even more impressive considering it's an improvement over your old car. You might want to consider tracking other metrics, such as:\n\n1. Fuel efficiency over time: See if your mileage improves or decreases over time, which can indicate potential issues with your car's engine, tires, or driving habits.\n2. Fuel efficiency in different conditions: Compare your mileage in city driving, highway driving, or in different weather conditions to see how they affect your car's performance.\n3. Maintenance and repair costs: Keep track of how much you're spending on maintenance, repairs, and replacement parts to get a better understanding of your car's overall cost of ownership.\n\nBy tracking these metrics, you'll be able to make data-driven decisions about your car's maintenance, optimize your driving habits, and potentially even save money on fuel costs.\n\nRemember, it's always a good idea to consult your car's owner's manual for recommended maintenance schedules, fuel efficiency tips, and other important information specific to your vehicle.\n\nKeep up the good work, and happy tracking!",
-        "has_answer": False
-    },
-    {
-        "role": "user",
-        "content": "I've also been using the rewards program at the Shell gas station near my office to earn points. Do you think it's worth it to focus on earning points at one gas station or to try to earn points across multiple stations?",
-        "has_answer": False
-    },
-    {
-        "role": "assistant",
-        "content": "That's a great question! Rewards programs can be a fantastic way to save money or earn perks on your gas purchases.\n\nThe strategy you choose depends on your personal preferences, driving habits, and the specific rewards programs offered by different gas stations. Here are some pros and cons of each approach to consider:\n\n**Focusing on one gas station:**\n\nPros:\n\n* You can accumulate points faster and reach rewards thresholds more quickly.\n* You might receive more targeted offers and promotions since you're a loyal customer.\n* It's easier to track your points and redeem rewards.\n\nCons:\n\n* You might be limited to a specific station or location, which could be inconvenient if you travel or have multiple cars.\n* You might miss out on better deals or rewards offered by other stations.\n\n**Earning points across multiple stations:**\n\nPros:\n\n* You can take advantage of better prices or promotions at different stations.\n* You're not tied to a single station, giving you more flexibility when traveling or filling up.\n* You can diversify your rewards earning potential across multiple programs.\n\nCons:\n\n* You might spread yourself too thin, making it harder to accumulate points quickly.\n* You'll need to keep track of multiple programs, which can be more complex.\n\nConsider the following questions to help you decide:\n\n1. Do you frequent a specific gas station regularly, making it convenient to focus on earning points there?\n2. Are the rewards offered by a particular station more valuable to you than others?\n3. Do you travel frequently or have multiple cars, making it beneficial to earn points across multiple stations?\n4. Are you willing to keep track of multiple rewards programs and adapt to changes in their terms and conditions?\n\nUltimately, you can experiment with both approaches and see what works best for your lifestyle and preferences. You might find that focusing on one station yields better rewards, or that earning points across multiple stations provides more flexibility and savings.\n\nRemember to always review the terms and conditions of each rewards program to ensure you understand how points are earned, redeemed, and expire. Happy rewards earning!",
-        "has_answer": False
-    },
-    {
-        "role": "user",
-        "content": "I've also been redeeming points from my credit card to get rewards. I recently redeemed 50,000 points to get a $500 gift card to a car accessories store. I used it to purchase a new car cover, floor mats, and a steering wheel cover, which I'm really happy with.",
-        "has_answer": False
-    },
-    {
-        "role": "assistant",
-        "content": "That's awesome! It sounds like you're making the most of your credit card rewards program!\n\nRedeeming 50,000 points for a $500 gift card is a great value, and it's even better that you were able to use it to get some practical and useful items for your car. A new car cover, floor mats, and steering wheel cover can really enhance the overall appearance and comfort of your vehicle.\n\nIt's great that you're thinking strategically about your rewards redemptions and using them to get something that brings you joy and value. Credit card rewards can be a fantastic way to offset the cost of everyday expenses or splurge on something special.\n\nDo you have a favorite way to earn or redeem credit card points, or any tips for maximizing your rewards earnings?\n\nAlso, how do you like your new car accessories? Are there any other car-related purchases or upgrades on your wishlist?",
-        "has_answer": False
-    },
-    {
-        "role": "user",
-        "content": "I'm really happy with my new car accessories, and they've added a nice touch to my car. I've been thinking about getting a car wax and detailing done soon, and I was wondering if you could help me find a good detailer in my area.",
-        "has_answer": False
-    },
-    {
-        "role": "assistant",
-        "content": "I'm glad to hear that you're happy with your new car accessories!\n\nAs for finding a good detailer in your area, I'd be happy to help. However, I'm a large language model, I don't have direct access to your location or personal information. But I can provide you with some general tips on how to find a reputable and reliable detailer in your area:\n\n1. Online Reviews: Check review websites such as Yelp, Google Reviews, or Facebook Reviews to see what other customers have to say about their experiences with local detailers.\n2. Ask for Referrals: Ask friends, family, or coworkers who have had their cars detailed recently for recommendations.\n3. Check Certifications: Look for detailers who are certified by organizations such as the International Detailing Association (IDA) or the National Institute of Automotive Service Excellence (ASE).\n4. Check Their Work: Ask to see before-and-after photos of their work or visit their shop to see the quality of their work firsthand.\n5. Get Quotes: Get quotes from several detailers and compare prices and services offered.\n\nBy following these steps, you should be able to find a reputable and reliable detailer in your area who can help you get your car looking its best.\n\nRemember to always do your research and choose a detailer who has a good reputation, provides quality work, and offers competitive pricing. Good luck in your search!",
-        "has_answer": False
-    }
-]
-session = Session(session=sess, extract_keys=True, extract_facts=True, llm_extractor=test_llm_extractor)
-session.show_session()
+# sess = [
+#     {
+#         "role": "user",
+#         "content": "I'm thinking of getting my car detailed soon. Do you know any good detailers in the area or have any recommendations? By the way, I just got my car serviced for the first time on March 15th, and it was a great experience.",
+#         "has_answer": True
+#     },
+#     {
+#         "role": "assistant",
+#         "content": "I'm happy to help you with your question! However, I'm a large language model, I don't have personal experiences or knowledge of specific locations or businesses. I can provide some general advice and suggestions on how to find a good detailer in your area.\n\nTo find a reputable and reliable detailer, you can try the following:\n\n1. Online Reviews: Check review websites such as Yelp, Google Reviews, or Facebook Reviews to see what other customers have to say about their experiences with local detailers.\n2. Ask for Referrals: Ask friends, family, or coworkers who have had their cars detailed recently for recommendations.\n3. Check Certifications: Look for detailers who are certified by organizations such as the International Detailing Association (IDA) or the National Institute of Automotive Service Excellence (ASE).\n4. Check Their Work: Ask to see before-and-after photos of their work or visit their shop to see the quality of their work firsthand.\n5. Get Quotes: Get quotes from several detailers and compare prices and services offered.\n\nAs for your car service experience on March 15th, I'm glad to hear it was a great experience! It's always important to keep your car well-maintained, and it sounds like you're taking good care of your vehicle.\n\nRemember to always do your research and choose a reputable detailer to ensure your car receives the best care possible. Good luck in your search!",
+#         "has_answer": False
+#     },
+#     {
+#         "role": "user",
+#         "content": "I'll definitely check out those review websites and ask around for referrals. Do you think it's a good idea to get a wax and detailing done every 3-4 months to maintain the car's appearance and protect the paint?",
+#         "has_answer": False
+#     },
+#     {
+#         "role": "assistant",
+#         "content": "Regular waxing and detailing can definitely help maintain your car's appearance and protect the paint. The frequency of waxing and detailing depends on several factors, including:\n\n1. Climate: If you live in an area with harsh weather conditions, such as heavy rain, snow, or intense sunlight, you may need to wax and detail more frequently (every 2-3 months).\n2. Driving habits: If you drive frequently, park outdoors, or drive on rough roads, you may need to wax and detail more often to remove dirt, grime, and contaminants that can damage the paint.\n3. Paint type: Some paint finishes, like clear coat or ceramic coat, may require more frequent waxing and detailing to maintain their appearance and protection.\n\nIn general, waxing every 3-4 months is a good rule of thumb for most cars. This frequency can help:\n\n1. Protect the paint from UV rays, oxidation, and fading.\n2. Remove dirt, grime, and contaminants that can scratch or damage the paint.\n3. Maintain a glossy, showroom-like appearance.\n4. Make future washing and maintenance easier.\n\nHowever, if you want to take your car's appearance to the next level, you may consider a more frequent detailing schedule, such as:\n\n* Washing every 1-2 weeks to remove dirt and grime.\n* Waxing every 2-3 months to provide an extra layer of protection.\n* Detailing every 3-4 months to deep clean the interior and exterior.\n\nRemember to also consider your car's specific needs, such as any special paint finishes or requirements.\n\nIt's great that you're thinking about maintaining your car's appearance and protection. Regular waxing and detailing can definitely help extend the life of your car's paint and keep it looking its best!",
+#         "has_answer": False
+#     },
+#     {
+#         "role": "user",
+#         "content": "Yup, that makes sense. I've been keeping track of my gas mileage too, and I've been getting around 32 miles per gallon, which is better than my old car.",
+#         "has_answer": False
+#     },
+#     {
+#         "role": "assistant",
+#         "content": "That's great to hear! Keeping track of your gas mileage is a great way to monitor your car's performance and make adjustments to your driving habits or maintenance routine as needed.\n\nA 32 miles per gallon average is a good starting point, and it's even more impressive considering it's an improvement over your old car. You might want to consider tracking other metrics, such as:\n\n1. Fuel efficiency over time: See if your mileage improves or decreases over time, which can indicate potential issues with your car's engine, tires, or driving habits.\n2. Fuel efficiency in different conditions: Compare your mileage in city driving, highway driving, or in different weather conditions to see how they affect your car's performance.\n3. Maintenance and repair costs: Keep track of how much you're spending on maintenance, repairs, and replacement parts to get a better understanding of your car's overall cost of ownership.\n\nBy tracking these metrics, you'll be able to make data-driven decisions about your car's maintenance, optimize your driving habits, and potentially even save money on fuel costs.\n\nRemember, it's always a good idea to consult your car's owner's manual for recommended maintenance schedules, fuel efficiency tips, and other important information specific to your vehicle.\n\nKeep up the good work, and happy tracking!",
+#         "has_answer": False
+#     },
+#     {
+#         "role": "user",
+#         "content": "I've also been using the rewards program at the Shell gas station near my office to earn points. Do you think it's worth it to focus on earning points at one gas station or to try to earn points across multiple stations?",
+#         "has_answer": False
+#     },
+#     {
+#         "role": "assistant",
+#         "content": "That's a great question! Rewards programs can be a fantastic way to save money or earn perks on your gas purchases.\n\nThe strategy you choose depends on your personal preferences, driving habits, and the specific rewards programs offered by different gas stations. Here are some pros and cons of each approach to consider:\n\n**Focusing on one gas station:**\n\nPros:\n\n* You can accumulate points faster and reach rewards thresholds more quickly.\n* You might receive more targeted offers and promotions since you're a loyal customer.\n* It's easier to track your points and redeem rewards.\n\nCons:\n\n* You might be limited to a specific station or location, which could be inconvenient if you travel or have multiple cars.\n* You might miss out on better deals or rewards offered by other stations.\n\n**Earning points across multiple stations:**\n\nPros:\n\n* You can take advantage of better prices or promotions at different stations.\n* You're not tied to a single station, giving you more flexibility when traveling or filling up.\n* You can diversify your rewards earning potential across multiple programs.\n\nCons:\n\n* You might spread yourself too thin, making it harder to accumulate points quickly.\n* You'll need to keep track of multiple programs, which can be more complex.\n\nConsider the following questions to help you decide:\n\n1. Do you frequent a specific gas station regularly, making it convenient to focus on earning points there?\n2. Are the rewards offered by a particular station more valuable to you than others?\n3. Do you travel frequently or have multiple cars, making it beneficial to earn points across multiple stations?\n4. Are you willing to keep track of multiple rewards programs and adapt to changes in their terms and conditions?\n\nUltimately, you can experiment with both approaches and see what works best for your lifestyle and preferences. You might find that focusing on one station yields better rewards, or that earning points across multiple stations provides more flexibility and savings.\n\nRemember to always review the terms and conditions of each rewards program to ensure you understand how points are earned, redeemed, and expire. Happy rewards earning!",
+#         "has_answer": False
+#     },
+#     {
+#         "role": "user",
+#         "content": "I've also been redeeming points from my credit card to get rewards. I recently redeemed 50,000 points to get a $500 gift card to a car accessories store. I used it to purchase a new car cover, floor mats, and a steering wheel cover, which I'm really happy with.",
+#         "has_answer": False
+#     },
+#     {
+#         "role": "assistant",
+#         "content": "That's awesome! It sounds like you're making the most of your credit card rewards program!\n\nRedeeming 50,000 points for a $500 gift card is a great value, and it's even better that you were able to use it to get some practical and useful items for your car. A new car cover, floor mats, and steering wheel cover can really enhance the overall appearance and comfort of your vehicle.\n\nIt's great that you're thinking strategically about your rewards redemptions and using them to get something that brings you joy and value. Credit card rewards can be a fantastic way to offset the cost of everyday expenses or splurge on something special.\n\nDo you have a favorite way to earn or redeem credit card points, or any tips for maximizing your rewards earnings?\n\nAlso, how do you like your new car accessories? Are there any other car-related purchases or upgrades on your wishlist?",
+#         "has_answer": False
+#     },
+#     {
+#         "role": "user",
+#         "content": "I'm really happy with my new car accessories, and they've added a nice touch to my car. I've been thinking about getting a car wax and detailing done soon, and I was wondering if you could help me find a good detailer in my area.",
+#         "has_answer": False
+#     },
+#     {
+#         "role": "assistant",
+#         "content": "I'm glad to hear that you're happy with your new car accessories!\n\nAs for finding a good detailer in your area, I'd be happy to help. However, I'm a large language model, I don't have direct access to your location or personal information. But I can provide you with some general tips on how to find a reputable and reliable detailer in your area:\n\n1. Online Reviews: Check review websites such as Yelp, Google Reviews, or Facebook Reviews to see what other customers have to say about their experiences with local detailers.\n2. Ask for Referrals: Ask friends, family, or coworkers who have had their cars detailed recently for recommendations.\n3. Check Certifications: Look for detailers who are certified by organizations such as the International Detailing Association (IDA) or the National Institute of Automotive Service Excellence (ASE).\n4. Check Their Work: Ask to see before-and-after photos of their work or visit their shop to see the quality of their work firsthand.\n5. Get Quotes: Get quotes from several detailers and compare prices and services offered.\n\nBy following these steps, you should be able to find a reputable and reliable detailer in your area who can help you get your car looking its best.\n\nRemember to always do your research and choose a detailer who has a good reputation, provides quality work, and offers competitive pricing. Good luck in your search!",
+#         "has_answer": False
+#     }
+# ]
+# session = Session(session=sess, extract_keys=True, extract_facts=True, llm_extractor=test_llm_extractor)
+# session.show_session()
 # session.extract_session_keys(test_llm_extractor)
 # session.extract_session_facts(test_llm_extractor)
-print(session)
+# print(session)
 
 
 
@@ -552,6 +590,11 @@ date_list=[
     "2023/04/10 (Mon) 17:15"
 ]
 
-# conversation = Conversation(conv, id_list, date_list, date="现在", id='0597')
-# print(conversation)
+conversation = Conversation(conv, id_list, date_list, date="现在", id='0597')
+print(conversation)
+
+conversation.extract_conversation_facts(test_llm_extractor)
+conversation.extract_conversation_keys(test_llm_extractor)
+
+print(conversation)
 # conversation.show_conversation()
