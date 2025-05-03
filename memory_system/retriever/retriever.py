@@ -2,6 +2,7 @@ import numpy as np
 from openai import OpenAI
 from zhipuai import ZhipuAI
 from dotenv import load_dotenv
+from container.memory_container import Conversation
 import os
 
 os.environ["http_proxy"] = "http://127.0.0.1:37890"
@@ -39,14 +40,19 @@ class Retriever():
         return self.zhipu_client.embeddings.create(input = [text], model=model).data[0].embedding
 
 
+    def question2query(self, question):
+        ...
+
+
+    def compute_embed_for_conversation(self, conversation:Conversation, strategy:str="session"):
+        "要设计好不同的strategy下计算什么embedding, 以便后面检索"
+        ...
+
 
     def compute_similarity(emb1, emb2):
         norm_emb1 = np.linalg.norm(emb1)
         norm_emb2 = np.linalg.norm(emb2)
         return np.dot(emb1, emb2) / (norm_emb1 * norm_emb2)
-
-    def question2query(self, question):
-        ...
 
 
     def get_top_k(self, chunks, k=5, strategy:str="session"):
