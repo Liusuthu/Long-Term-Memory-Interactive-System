@@ -34,6 +34,6 @@ def get_zhipu_embedding(text, model="embedding-2"):
     return zhipu_client.embeddings.create(input = [text], model=model).data[0].embedding
 
 
-# ZHIPU充了2块钱，不知道能用多久
-print("OpenAI Emb:",(len(get_embedding(text="good morning", model="text-embedding-3-large"))))
-print("ZHIPU Embed:", (len(get_zhipu_embedding(text="good morning"))))
+# ZHIPU充了2块钱，不知道能用多久 后续还可以引入更多，今天先不了。
+# print("OpenAI Emb:",(len(get_embedding(text="good morning", model="text-embedding-3-large"))))
+# print("ZHIPU Embed:", (len(get_zhipu_embedding(text="good morning"))))
