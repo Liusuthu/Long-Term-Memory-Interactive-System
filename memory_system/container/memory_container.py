@@ -17,7 +17,9 @@ class Round:
         """
 
         self.round_keys = []
+        self.has_round_keys = False
         self.round_facts = []
+        self.has_round_facts = False
         self.user = None
         self.assistant = None
 
@@ -64,7 +66,9 @@ class Session:
         self.session_id = session_id
         self.session_date = session_date
         self.session_keys = []
+        self.has_session_keys = False
         self.session_facts = []
+        self.has_session_facts = False
         self.rounds = []
 
         self.num_rounds = len(session)//2
@@ -118,7 +122,9 @@ class Conversation:
         self.num_sessions = len(sessions)
         self.sessions = []
         self.conversation_keys = []
+        self.has_conversation_keys = False
         self.conversation_facts = []
+        self.has_conversation_facts = False
         for idx, session in enumerate(sessions):
             cur_session = Session(session=session, session_id=session_id_list[idx], session_date=session_date_list[idx])
             self.sessions.append(cur_session)
