@@ -13,7 +13,7 @@ def load_llm_model(model_name):
     model = AutoModelForCausalLM.from_pretrained(
         model_path,
         torch_dtype="auto",
-        device_map="auto",
+        device_map={"": "cuda:0"},
     )
     return tokenizer, model
 
@@ -25,7 +25,7 @@ def load_qwen3_model(model_name):
     model = AutoModelForCausalLM.from_pretrained(
         model_path,
         torch_dtype="auto",
-        device_map="auto",
+        device_map={"": "cuda:0"},
     )
     return tokenizer, model
 

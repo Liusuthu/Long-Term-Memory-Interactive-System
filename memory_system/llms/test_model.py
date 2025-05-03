@@ -1,5 +1,5 @@
 from open_sourced import load_llm_model, load_qwen3_model, llm_generate, qwen3_generate
-from close_sourced import get_client, get_answer
+from close_sourced import get_client, get_response
 
 
 # Open
@@ -23,4 +23,4 @@ messages = [
 ]
 
 client = get_client()
-print(get_answer(client, messages))
+print(get_response(client, messages))

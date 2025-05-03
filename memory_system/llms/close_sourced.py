@@ -5,8 +5,11 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import os 
 
-load_dotenv()
 
+os.environ["http_proxy"] = "http://127.0.0.1:37890"
+os.environ["https_proxy"] = "http://127.0.0.1:37890"
+
+load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=api_key)
 
@@ -16,7 +19,7 @@ def get_client():
     return client
 
 
-def get_answer(client, messages, model="gpt-4o-mini"):
+def get_response(client, messages, model="gpt-4o-mini"):
     response = client.chat.completions.create(
         model=model,
         messages=messages,
