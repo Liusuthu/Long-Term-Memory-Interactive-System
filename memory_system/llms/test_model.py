@@ -15,12 +15,12 @@ from close_sourced import get_client, get_response
 
 
 
-# Close
-prompt = "A+B=3, B+C=5, known that A=1, C=?."
-messages = [
-    {"role": "system", "content": "You are Qwen, created by Alibaba Cloud. You are a helpful assistant."},
-    {"role": "user", "content": prompt}
-]
+# Test Closed 
+# prompt = "A+B=3, B+C=5, known that A=1, C=?."
+# messages = [
+#     {"role": "system", "content": "You are Qwen, created by Alibaba Cloud. You are a helpful assistant."},
+#     {"role": "user", "content": prompt}
+# ]
 
-client = get_client()
-print(get_response(client, messages))
+# client = get_client()
+# print(get_response(client, messages))

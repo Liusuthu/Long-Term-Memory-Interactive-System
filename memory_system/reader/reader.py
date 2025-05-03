@@ -106,16 +106,16 @@ class CoNReader():
 
 
 
-prompt = "A+B=3, B+C=5, known that A=1, C=?."
-messages = [
-    {"role": "system", "content": "You are Qwen, created by Alibaba Cloud. You are a helpful assistant."},
-    {"role": "user", "content": prompt}
-]
+# prompt = "A+B=3, B+C=5, known that A=1, C=?."
+# messages = [
+#     {"role": "system", "content": "You are Qwen, created by Alibaba Cloud. You are a helpful assistant."},
+#     {"role": "user", "content": prompt}
+# ]
 # plain_reader = PlainReader()
 # result = plain_reader.generate_function(plain_reader.reader_tokenizer, plain_reader.reader_llm, messages)
 
-gpt_reader = PlainReader(model_name='gpt-4o-mini')
-result = gpt_reader.generate_function(gpt_reader.client,messages)
+# gpt_reader = PlainReader(model_name='gpt-4o-mini')
+# result = gpt_reader.generate_function(gpt_reader.client,messages)
 
-print(result)
+# print(result)
 

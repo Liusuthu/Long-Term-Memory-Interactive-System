@@ -6,7 +6,7 @@ from termcolor import colored
 from llms.packaged_llms import UnifiedLLM
 from llms.packaged_llms import get_messages
 
-test_llm_extractor = UnifiedLLM("Qwen2.5-14B-Instruct")
+# test_llm_extractor = UnifiedLLM("Qwen2.5-14B-Instruct")
 
 
 # 目前Prompt先基于LongMemEval论文中的做法简单修改实现，以跑通流程为主
@@ -225,6 +225,7 @@ class Conversation:
         self.has_conversation_keys = False
         self.conversation_facts = []
         self.has_conversation_facts = False
+
         for idx, session in enumerate(sessions):
             cur_session = Session(session=session, session_id=session_id_list[idx], session_date=session_date_list[idx])
             self.sessions.append(cur_session)
@@ -590,11 +591,11 @@ date_list=[
     "2023/04/10 (Mon) 17:15"
 ]
 
-conversation = Conversation(conv, id_list, date_list, date="现在", id='0597')
-print(conversation)
+# conversation = Conversation(conv, id_list, date_list, date="现在", id='0597')
+# print(conversation)
 
-conversation.extract_conversation_facts(test_llm_extractor)
-conversation.extract_conversation_keys(test_llm_extractor)
+# conversation.extract_conversation_facts(test_llm_extractor)
+# conversation.extract_conversation_keys(test_llm_extractor)
 
-print(conversation)
+# print(conversation)
 # conversation.show_conversation()
