@@ -1,8 +1,26 @@
 "The memory storage structure of our memory system"
 
 import types
+import ast
 from termcolor import colored
 from llms.packaged_llms import UnifiedLLM
+from llms.packaged_llms import get_messages
+
+test_llm_extractor = UnifiedLLM("Qwen2.5-14B-Instruct")
+
+
+# 目前Prompt先基于LongMemEval论文中的做法简单修改实现，以跑通流程为主
+normal_system_prompt = "You are a supportive AI assistant, focused on helping the user accomplish their tasks by following instructions carefully and precisely."
+
+extract_round_keys_prompt = "Below is a transcript of a round of conversation between a human user and an AI assistant. Generate a list of keyphrases that best represent this round of conversation. These keyphrases don't necessarily have to originally from conversation. The generated keyphrases should be meaningful, such as key nouns, adjectives, specific values, and corresponding entities (but not limited to those mentioned), other than just simple words. Separate each keyphrase with a semicolon. If there are no significant keyphrases in this round of conversation, simply generate 'N/A'. \n\nDialogue content:\n{}. \n\nA list of keyphrases: (a list of keyphrases in str format; do not generate anything else. Better to have nothing than to have something of poor quality.)"
+extract_round_summary_key_prompt = "Below is a transcript of a round of conversation between a human user and an AI assistant. Generate a phrase that best summarize the content of this round of conversation(not anything like resquest and response!). This phrase doesn't necessarily have to originally from conversation. \n\nDialogue content:\n{} \n\nPhrase: (a phrase that best summarizes this round of conversation in string format; do not generate anything else.)"
+extract_round_facts_prompt = "You will be given a round of conversation from a human user to an AI assistant. Extract all the personal information, life events, experience, and preferences related to the user and the assistant. Make sure you include all details such as life events, personal experience, preferences, specific numbers, locations, or dates. State each piece of information in a simple sentence. Put these sentences in a json list, each element being a standalone personal fact about the user or the assistant. Minimize the coreference across the facts, e.g., replace pronouns with actual entities. If there is no specific events, personal information, or preference mentioned, just generate an empty list. \n\nDialogue content:\n{}. \n\nPersonal facts about the user (a list of strings in json format; do not generate anything else):"
+
+extract_session_keys_prompt = ""
+extract_session_facts_prompt = ""
+
+extract_conversation_keys_prompt = ""
+extract_conversation_facts_prompt = ""
 
 
 class Round:
@@ -16,6 +34,8 @@ class Round:
             llm_extractor: A pre-packaged and ready-to-use LLM to act as a key-extractor.
         """
 
+        self.round_summary_key = None
+        self.has_summary_key = False
         self.round_keys = []
         self.has_round_keys = False
         self.round_facts = []
@@ -35,16 +55,19 @@ class Round:
         if extract_keys:
             if llm_extractor is None:
                 raise ValueError("llm_extractor must be provided if extract_keys is True.")
-            self.round_keys = self.extract_round_keys(llm_extractor)
+            self.extract_round_keys(llm_extractor)
         if extract_facts:
             if llm_extractor is None:
                 raise ValueError("llm_extractor must be provided if extract_facts is True.")
-            self.round_facts = self.extract_round_facts(llm_extractor)
-
+            self.extract_round_facts(llm_extractor)
 
 
     def __repr__(self):
-        return f"Round(\n  user={self.user[:20]!r}..., \n  assistant={self.assistant[:20]!r}...,\n  round_keys={self.round_keys},\n  round_facts={self.round_facts} \n)"
+        return f"Round(\n  user={self.user[:20]!r}..., \n  assistant={self.assistant[:20]!r}...,\n  round_summary_key={self.round_summary_key}, \n  round_keys={self.round_keys},\n  round_facts={self.round_facts} \n)"
+
+    def get_round_str(self):
+        return f"USER: {self.user}\nASSISTANT: {self.assistant}"
+
 
     def show_round(self):
         print(colored("User:",color="cyan",attrs=["bold"]),f"{self.user}")
@@ -52,16 +75,34 @@ class Round:
 
 
     def extract_round_keys(self, llm_extractor):
-        ...
+        # For normal keys
+        messages = get_messages(normal_system_prompt, extract_round_keys_prompt.format(self.get_round_str()))
+        result = llm_extractor.generate(messages)
+        if result != 'N/A':
+            self.has_round_keys = True
+            keyword_list = result.replace("\n", "").replace("\t", "").split("; ")
+            self.round_keys = keyword_list
+        # For summary key
+        messages = get_messages(normal_system_prompt, extract_round_summary_key_prompt.format(self.get_round_str()))
+        result = llm_extractor.generate(messages)
+        self.has_summary_key = True
+        self.round_summary_key = result
+
 
     def extract_round_facts(self, llm_extractor):
-        ...
+        messages = get_messages(normal_system_prompt, extract_round_facts_prompt.format(self.get_round_str()))
+        result = llm_extractor.generate(messages)
+        result_list = ast.literal_eval(result)
+        if len(result_list) != 0:
+            self.has_round_facts = True
+            self.round_facts = result_list
+
 
 
 
 class Session:
     "A session between a user and an assistant. Which contains multiple rounds."
-    def __init__(self, session:list, session_id:str=None, session_date:str=None, extract_keys:bool=False, llm_extractor=None):
+    def __init__(self, session:list, session_id:str=None, session_date:str=None, extract_keys:bool=False, llm_extractor:UnifiedLLM=None):
         """
         Args:
             session_id (str): The ID of the session.
@@ -115,7 +156,7 @@ class Session:
 
 class Conversation:
     "A full conversation between a user and an assistant, which is associate with a QA."
-    def __init__(self, sessions:list, session_id_list:list, session_date_list:str, date:str=None, id:str=None, extract_keys:bool=False, llm_extractor=None):
+    def __init__(self, sessions:list, session_id_list:list, session_date_list:str, date:str=None, id:str=None, extract_keys:bool=False, llm_extractor:UnifiedLLM=None):
         """
         Args:
             session (list): A list of lists(session), annotated with session_id and session_date.
@@ -160,12 +201,24 @@ class Conversation:
 
 
 msg=[
-    {"role": "user", "content": "Hello, how are you?"},
-    {"role": "assistant", "content": "I'm fine, thank you! How can I assist you today?"}
+    # {"role": "user", "content": "Hello, how are you?"},
+    # {"role": "assistant", "content": "I'm fine, thank you! How can I assist you today?"},
+    # {"role": "user", "content": "What is the weather like today?"},
+    # {"role": "assistant", "content": "The weather is sunny with a high of 25 degrees."}
+    # {"role": "user", "content": "Can you tell me a joke?"},
+    # {"role": "assistant", "content": "Why did the chicken cross the road? To get to the other side!"},
+    {"role":"user", "content":"I'm thinking of getting my car detailed soon. Do you know any good detailers in the area or have any recommendations? By the way, I just got my car serviced for the first time on March 15th, and it was a great experience."},
+    {"role":"assistant", "content": "I'm happy to help you with your question! However, I'm a large language model, I don't have personal experiences or knowledge of specific locations or businesses. I can provide some general advice and suggestions on how to find a good detailer in your area.\n\nTo find a reputable and reliable detailer, you can try the following:\n\n1. Online Reviews: Check review websites such as Yelp, Google Reviews, or Facebook Reviews to see what other customers have to say about their experiences with local detailers.\n2. Ask for Referrals: Ask friends, family, or coworkers who have had their cars detailed recently for recommendations.\n3. Check Certifications: Look for detailers who are certified by organizations such as the International Detailing Association (IDA) or the National Institute of Automotive Service Excellence (ASE).\n4. Check Their Work: Ask to see before-and-after photos of their work or visit their shop to see the quality of their work firsthand.\n5. Get Quotes: Get quotes from several detailers and compare prices and services offered.\n\nAs for your car service experience on March 15th, I'm glad to hear it was a great experience! It's always important to keep your car well-maintained, and it sounds like you're taking good care of your vehicle.\n\nRemember to always do your research and choose a reputable detailer to ensure your car receives the best care possible. Good luck in your search!"}
+    # {"role":"user","content":"I'll definitely ask those questions when I visit the detailer. And yeah, the GPS issue was a bit frustrating, but at least it was resolved quickly. By the way, do you know if there are any specific car wax products that are better suited for cars with advanced paint finishes, like my silver Honda Civic?"},
+    # {"role":"assistant","content":"Advanced paint finishes, like those found on many modern vehicles, require special care to maintain their appearance and protect them from damage. When it comes to car wax, you'll want to look for products that are specifically designed for these types of finishes. Here are some tips to help you choose the right wax for your silver Honda Civic:\n\n1. **Look for waxes labeled as \"safe for advanced paint finishes\" or \"clear coat safe\"**: These waxes are formulated to work with the unique properties of advanced paint finishes, which can be more sensitive to certain chemicals.\n2. **Opt for a wax with a high Carnauba content**: Carnauba wax is a natural wax that provides an excellent barrier against the elements and is gentle on paint. Look for waxes with a high percentage of Carnauba (usually 20% or higher).\n3. **Consider a synthetic sealant or ceramic coating**: These products offer longer-lasting protection than traditional waxes and can provide an additional layer of defense against the elements. They're especially useful for cars with advanced paint finishes.\n4. **Avoid waxes with abrasive ingredients**: Some waxes contain abrasives that can scratch or mar advanced paint finishes. Look for waxes that are labeled as \"abrasive-free\" or \"non-abrasive.\"\n5. **Check the pH level**: A pH level close to neutral (around 7) is ideal for most paint finishes. Avoid waxes with high or low pH levels, as they can potentially damage the paint.\n\nSome popular car wax products that are suitable for advanced paint finishes include:\n\n* Meguiar's Ultimate Liquid Wax\n* Chemical Guys Car Wax\n* Autogeek Garage Line Car Wax\n* P21S Concours Carnauba Wax\n* Gtechniq Crystal Serum Ceramic Coating (for a longer-lasting, more protective option)\n\nRemember to always read the instructions and follow the manufacturer's recommendations for application and removal.\n\nWhen you visit the detailer, ask them about the type of wax they use and whether it's suitable for your car's advanced paint finish. A good detailer will be knowledgeable about the products they use and can recommend the best option for your vehicle."}
 ]
 round = Round(msg)
-print(round)
 round.show_round()
+
+# round.extract_round_facts(test_llm_extractor)
+# round.extract_round_keys(test_llm_extractor)
+# print(round)
+
 
 
 sess=[

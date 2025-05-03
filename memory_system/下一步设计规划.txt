@@ -1,5 +1,6 @@
 预处理环节：
     一拿到Conversation后要先存入container中✅，
+    定义好一个统一的LLM接口，方便自由调用✅
     存入后提取key/fact并存入数据结构对应位置，并重置has_keys/facts标记⭕️
     存储后遍历计算这些key/fact的嵌入向量，可以存储在container的平行位置处⭕️
 
@@ -12,3 +13,6 @@
 评价指标：⭕️
     1️⃣检索命中率
     2️⃣QA正确率（LLM as Judge）
+
+
+export PYTHONPATH=$PYTHONPATH:/home/limusheng/Long-Term-Memory-Interactive-System
