@@ -32,6 +32,7 @@ class PlainReader():
         """
         if retrieval_type == "round":
             ...
+            # TODO: 根据具体呈现的retrieval_list形式来做设计，后面都是
 
         elif retrieval_type == "session":
             ...
@@ -42,6 +43,7 @@ class PlainReader():
         else:
             raise ValueError(f"Argument retrieval_type should be one of `round`, `session` or `hybrid`, but now is {retrieval_type}.")
         
+
 
 
 class CoNReader():
