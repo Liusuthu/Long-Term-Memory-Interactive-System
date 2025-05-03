@@ -28,7 +28,7 @@ def get_response(client, messages, model="gpt-4o-mini"):
     return response.choices[0].message.content
 
 
-
+# print(client)
 # response = client.chat.completions.create(
 #     model="gpt-4o-mini",
 #     messages=[

@@ -2,18 +2,18 @@
 
 import types
 from termcolor import colored
-
+from llms.packaged_llms import UnifiedLLM
 
 
 class Round:
     "A round between a user and an assistant."
-    def __init__(self, message:list=None, extract_keys:bool=False, llm_extractor=None):
+    def __init__(self, message:list=None, extract_keys:bool=False, extract_facts:bool=False, llm_extractor:UnifiedLLM=None):
         """
         Args:
             message (list): A list of two dictionaries, one for the user and one for the assistant.
                             Each dictionary must contain 'role' and 'content'.
             extract_keys (bool): If True, extract a key from this round using llm_extractor.
-            llm_extractor: An LLM to act as a key-extractor.
+            llm_extractor: A pre-packaged and ready-to-use LLM to act as a key-extractor.
         """
 
         self.round_keys = []
@@ -35,7 +35,11 @@ class Round:
         if extract_keys:
             if llm_extractor is None:
                 raise ValueError("llm_extractor must be provided if extract_keys is True.")
-            self.round_keys = self.extract_keys(llm_extractor)
+            self.round_keys = self.extract_round_keys(llm_extractor)
+        if extract_facts:
+            if llm_extractor is None:
+                raise ValueError("llm_extractor must be provided if extract_facts is True.")
+            self.round_facts = self.extract_round_facts(llm_extractor)
 
 
 
@@ -47,7 +51,10 @@ class Round:
         print(colored("Assistant:",color="cyan",attrs=["bold"]),f"{self.assistant}")
 
 
-    def extract_keys(self, llm_extractor):
+    def extract_round_keys(self, llm_extractor):
+        ...
+
+    def extract_round_facts(self, llm_extractor):
         ...
 
 
@@ -84,7 +91,7 @@ class Session:
         if extract_keys:
             if llm_extractor is None:
                 raise ValueError("llm_extractor must be provided if extract_keys is True.")
-            self.session_keys = self.extract_keys(llm_extractor)
+            self.session_keys = self.extract_session_keys(llm_extractor)
         
 
     def __repr__(self):
@@ -100,7 +107,7 @@ class Session:
             print("-"*60)
 
 
-    def extract_keys(self, llm_extractor):
+    def extract_session_keys(self, llm_extractor):
         ...
 
 
@@ -132,7 +139,7 @@ class Conversation:
         if extract_keys:
             if llm_extractor is None:
                 raise ValueError("llm_extractor must be provided if extract_keys is True.")
-            self.conversation_keys = self.extract_keys(llm_extractor)
+            self.conversation_keys = self.extract_conversation_keys(llm_extractor)
 
 
     def __repr__(self):
@@ -147,7 +154,7 @@ class Conversation:
             self.sessions[i].show_session()
 
 
-    def extract_keys(self, llm_extractor):
+    def extract_conversation_keys(self, llm_extractor):
         ...
 
 
@@ -157,8 +164,8 @@ msg=[
     {"role": "assistant", "content": "I'm fine, thank you! How can I assist you today?"}
 ]
 round = Round(msg)
-# print(round)
-# round.show_round()
+print(round)
+round.show_round()
 
 
 sess=[
@@ -374,6 +381,6 @@ date_list=[
     "2023/04/10 (Mon) 17:15"
 ]
 
-conversation = Conversation(conv, id_list, date_list, date="现在", id='0597')
+# conversation = Conversation(conv, id_list, date_list, date="现在", id='0597')
 # print(conversation)
-conversation.show_conversation()
+# conversation.show_conversation()
