@@ -1,7 +1,17 @@
-"Integrated Open-Sourced and Close-Sourced LLMs into a unified class, only with a unified method generate(messages)."
+"Integrated Open-Sourced and Close-Sourced LLMs into a unified class, only with a unified method generate(messages).\n As well as a function get_messages() to get messages."
 
 from open_sourced import load_llm_model, load_qwen3_model, llm_generate, qwen3_generate
 from close_sourced import get_client, get_response
+
+
+# Message-Formatter
+def get_messages(system_prompt, user_prompt):
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt}
+    ]
+    return messages
+
 
 class UnifiedLLM:
     def __init__(self, model_name):
