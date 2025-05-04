@@ -2,12 +2,12 @@
     一拿到Conversation后要先存入container中✅，
     定义好一个统一的LLM接口，方便自由调用✅
     存入后提取key/fact并存入数据结构对应位置，并重置has_keys/facts标记✅
-    存储后遍历计算这些key/fact的嵌入向量，可以存储在container的平行位置处⭕️
+    存储后遍历计算这些key/fact的嵌入向量，可以存储在container的平行位置处✅
 
 解答环节：
-    分析具体的问题，planner生成一个list的步骤，让我们的系统step by step地执行⭕️
-    针对某一question，按照不同的策略将其转化为要用的query⭕️
-    按照指定好的query，遍历container结构寻找相似度最高的部分（颗粒度：session/round/hybrid）⭕️
+    分析具体的问题，planner生成一个list的步骤，让我们的系统step by step地执行✅
+    针对某一question，按照不同的策略将其转化为要用的query⭕️(暂时使用question本身)
+    按照指定好的query，遍历container结构寻找相似度最高的部分（颗粒度：session✅/round/hybrid）
     寻找后返回chunks，输入给reader进行处理操作，最终得到回答⭕️
     Optional：使用scheduler看看是否还需要更换query重新检索⭕️
 
