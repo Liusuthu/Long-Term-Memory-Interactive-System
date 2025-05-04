@@ -1,29 +1,24 @@
 from llms.open_sourced import load_llm_model, load_qwen3_model, llm_generate, qwen3_generate
 from llms.close_sourced import get_client, get_response
+from llms.packaged_llms import UnifiedLLM, get_messages
+from utils.chunks import session2context
 
 # export PYTHONPATH=$PYTHONPATH:/home/limusheng/Long-Term-Memory-Interactive-System
+
+normal_system_prompt = "You are a supportive AI assistant, focused on helping the user accomplish their tasks by following instructions carefully and precisely."
+
+plain_reader_prompt = "Below is a transcript of a conversation between a human user and an AI assistant, which consists of multiple sessions between the human user and the AI assistant. This conversation contains some key information about a question. You should answer the question after carefully analyzing the long conversation. The raw text of the conversation and the question are below:\n\nConversation:\n\n{}\n\nQuestion: {}\n\nYour Answer: (answer according to the conversation context; be precise and stick to the facts. Do not generate anything else.)"
 
 class PlainReader():
     "Simply use the retrieved text as input"
     def __init__(self, model_name="Qwen2.5-7B-Instruct"):
-        self.reader_tokenizer = None
-        self.reader_llm = None
-        self.client = None
+        self.llm = None
         self.model_name = model_name
-        if ("Qwen2" in model_name) or ("Llama" in model_name) or ("Mistral" in model_name):
-            self.reader_tokenizer, self.reader_llm = load_llm_model(model_name)
-            self.generate_function = llm_generate
-        elif "Qwen3" in model_name:
-            self.reader_tokenizer, self.reader_llm = load_qwen3_model(model_name)
-            self.generate_function = qwen3_generate
-        elif "gpt" in model_name:
-            self.client = get_client()
-            self.generate_function = get_response
-        else:
-            raise ValueError(f"Unsupported model: {model_name}")
         
+        self.llm = UnifiedLLM(model_name)
     
-    def get_answer(self, retrieval_type, retrieval_list):
+
+    def get_answer(self, retrieval_type, retrieval_list, question):
         """
         The function used to generate answer from retrieved chunks.
         Args:
@@ -35,8 +30,10 @@ class PlainReader():
             # TODO: 根据具体呈现的retrieval_list形式来做设计，后面都是
 
         elif retrieval_type == "session":
-            ...
-        
+            context = session2context(retrieval_list)
+            messages = get_messages(normal_system_prompt, plain_reader_prompt.format(context, question))
+            result = self.llm.generate(messages)
+            return result
         elif retrieval_type == "hybrid":
             ...
 
@@ -48,40 +45,13 @@ class PlainReader():
 
 class CoNReader():
     "First filter the retrieved chunks, then get answer."
-    def __init__(self, reader_model_name="Qwen2.5-7B-Instruct", filter_model_name="Qwen2.5-3B-Instruct"):
-        self.reader_tokenizer = None
-        self.reader_llm = None
-        self.filter_tokenizer = None
-        self.filter_llm =None
-        self.client = None
-        self.reader_model_name = reader_model_name
-        self.filter_model_name = filter_model_name
+    def __init__(self, model_name="Qwen2.5-3B-Instruct"):
+        self.llm = None
+        self.model_name = model_name
         
         # Load reader model
-        if ("Qwen2" in reader_model_name) or ("Llama" in reader_model_name) or ("Mistral" in reader_model_name):
-            self.reader_tokenizer, self.reader_llm = load_llm_model(reader_model_name)
-            self.reader_generate_function = llm_generate
-        elif "Qwen3" in reader_model_name:
-            self.reader_tokenizer, self.reader_llm = load_qwen3_model(reader_model_name)
-            self.reader_generate_function = qwen3_generate
-        elif "gpt" in reader_model_name:
-            self.client = get_client()
-            self.reader_generate_function = get_response
-        else:
-            raise ValueError(f"Unsupported reader model: {reader_model_name}")
+        self.llm = UnifiedLLM(model_name)
         
-        # Load filter model
-        if ("Qwen2" in filter_model_name) or ("Llama" in filter_model_name) or ("Mistral" in filter_model_name):
-            self.filter_tokenizer, self.filter_llm = load_llm_model(filter_model_name)
-            self.filter_generate_function = llm_generate
-        elif "Qwen3" in filter_model_name:
-            self.filter_tokenizer, self.filter_llm = load_qwen3_model(filter_model_name)
-            self.filter_generate_function = qwen3_generate
-        elif "gpt" in filter_model_name:
-            self.client = get_client()
-            self.filter_generate_function = get_response
-        else:
-            raise ValueError(f"Unsupported filter model: {filter_model_name}")
 
 
     def get_answer(self, retrieval_type, retrieval_list):
@@ -103,19 +73,4 @@ class CoNReader():
         else:
             raise ValueError(f"Argument retrieval_type should be one of `round`, `session` or `hybrid`, but now is {retrieval_type}.")
 
-
-
-
-# prompt = "A+B=3, B+C=5, known that A=1, C=?."
-# messages = [
-#     {"role": "system", "content": "You are Qwen, created by Alibaba Cloud. You are a helpful assistant."},
-#     {"role": "user", "content": prompt}
-# ]
-# plain_reader = PlainReader()
-# result = plain_reader.generate_function(plain_reader.reader_tokenizer, plain_reader.reader_llm, messages)
-
-# gpt_reader = PlainReader(model_name='gpt-4o-mini')
-# result = gpt_reader.generate_function(gpt_reader.client,messages)
-
-# print(result)
 

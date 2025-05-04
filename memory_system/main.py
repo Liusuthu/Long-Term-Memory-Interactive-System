@@ -6,13 +6,15 @@ from llms.packaged_llms import UnifiedLLM, get_messages
 from reader.reader import PlainReader, CoNReader
 from retriever.retriever import Retriever
 from termcolor import colored
+from utils.chunks import integrate_same_sessions, reorganize_evidence_sessions, session2context
+from utils.dates import date2datetime
 ... # Maybe more modules in the future
 
 
 # Stage 1: Load Data
 print("-"*40 + " Stage 1: Load Data " +"-"*40)
 # data_path = "../data/longmemeval_oracle"
-data_path = "../data/longmemeval_oracle"
+data_path = "../data/longmemeval_s"
 with open(data_path, "r") as f:
     longmemeval_data = json.load(f)
 print(f"Dataset(path: {data_path}) is loaded. Total number of samples: {len(longmemeval_data)}.")
@@ -29,7 +31,7 @@ llm_extractor = UnifiedLLM(extractor_name)
 
 item = None
 for tmp_item in longmemeval_data:
-    if tmp_item['question_id'] == "gpt4_2655b836":
+    if tmp_item['question_id'] == "0f05491a":
         item = tmp_item
         break
 
@@ -50,14 +52,9 @@ tmp_conversation = Conversation(
 for session in tmp_conversation.sessions:
     session.extract_session_facts(llm_extractor)
 
-
 print(tmp_conversation)
-
 for session in tmp_conversation.sessions:
     print(session)
-
-# Then compute embedding for some structures.
-
 
 
 # Stage 3: Retrieval
@@ -65,7 +62,6 @@ print("-"*40 + " Stage 3: Retrieval " +"-"*40)
 retriever = Retriever()
 current_question = item["question"]
 current_answer = item["answer"]
-print(f"Expected QA:\n  QUESTION: {current_question}\n  ANSWER: {current_answer}")
 
 retriever.compute_emb_for_conversation(tmp_conversation,)
 print("Emb computation finished...")
@@ -75,3 +71,30 @@ top_k_facts, top_k_scores, top_k_sids = retriever.get_top_k(tmp_conversation,)
 
 for i in range(len(top_k_scores)):
     print(f"{top_k_scores[i]}\t{top_k_sids[i]}\t{top_k_facts[i]}")
+
+
+
+# Stage 4: Read and Answer
+print("-"*40 + " Stage 4: Read and Answer " +"-"*40)
+integrated_sids = integrate_same_sessions(top_k_sids)
+my_evidence_sessions = []
+for sid in integrated_sids:
+    for session in tmp_conversation.sessions:
+        if session.session_id == sid:
+            my_evidence_sessions.append(session)
+            break
+sorted_sessions = reorganize_evidence_sessions(my_evidence_sessions)
+
+
+print("Loading Reader...")
+reader = PlainReader("Qwen2.5-14B-Instruct")
+
+system_answer = reader.get_answer("session", sorted_sessions, current_question)
+
+
+
+print("-"*60)
+print(f"QUESTION   : {current_question}")
+print(f"GT ANSWER  : {current_answer}")
+print(f"SYS ANSWER : {system_answer}")
+print("-"*60)

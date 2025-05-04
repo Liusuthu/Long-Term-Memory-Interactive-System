@@ -1,5 +1,15 @@
 import os
+from datetime import datetime
 
+
+def date2datetime(date_str: str) -> datetime:
+    cleaned_str = date_str.split('(')[0].strip() + " " + date_str.split(')')[-1].strip()
+    return datetime.strptime(cleaned_str, "%Y/%m/%d %H:%M")
+
+
+
+
+# 由于datetime本身的实现更高效，这里把compare dates这种基于字符串的方法抛弃
 def compare_dates(date_1, date_2):
     """
     A function used to compare 2 dates: date_1 and date_2.
@@ -55,6 +65,7 @@ def compare_dates(date_1, date_2):
 
     # If all are equal, return 0
     return 0
+
 
 
 print(compare_dates("2028/03/26 (Sun) 22:45", "2024/08/27 (Sun) 10:45"))
