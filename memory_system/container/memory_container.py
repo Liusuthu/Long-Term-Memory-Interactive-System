@@ -193,13 +193,24 @@ class Session:
         self.session_summary_key = result
 
 
-    def extract_session_facts(self, llm_extractor):
+    def extract_session_facts(self, llm_extractor, max_retries=3):
         messages = get_messages(normal_system_prompt, extract_session_facts_prompt.format(self.get_session_str()))
-        result = llm_extractor.generate(messages)
-        result_list = ast.literal_eval(result)
-        if len(result_list) != 0:
-            self.has_session_facts = True
-            self.session_facts = result_list
+        retries = 0
+        while retries < max_retries:
+            try:
+                result = llm_extractor.generate(messages)
+                result_list = ast.literal_eval(result)
+                if len(result_list) != 0:
+                    self.has_session_facts = True
+                    self.session_facts = result_list
+                    return  # 成功后退出
+                else:
+                    return  # 结果为空，也直接返回
+            except (ValueError, SyntaxError) as e:
+                retries += 1
+                if retries >= max_retries:
+                    print(f"Exceeded {max_retries} retries, skipping this session.")
+                    return  # 超过最大重试次数后跳过当前 session（坏session，不要也罢）
 
 
 
