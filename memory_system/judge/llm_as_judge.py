@@ -10,9 +10,9 @@ judge_instruction = "You are a professional and objective evaluator. You will be
 
 
 class LLMJudge:
-    def __init__(self, judge_model_name:str = "Qwen2.5-3B-Instruct"):
+    def __init__(self, llm_judge:UnifiedLLM,):
         self.model_name = judge_model_name
-        self.judge_model = UnifiedLLM(judge_model_name)
+        self.judge_model = llm_judge
 
     def judge(self, question, expected_answer, candidate_answer):
         messages = get_messages(

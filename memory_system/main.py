@@ -26,13 +26,17 @@ print(f"Dataset(path: {data_path}) is loaded. Total number of samples: {len(long
 # Take the first sample as an example
 print("-"*40 + " Stage 2: Preprocess Data " +"-"*40)
 
-extractor_name = "Qwen2.5-14B-Instruct"
-print(f"Loading LLM Extractor({extractor_name})...")
-llm_extractor = UnifiedLLM(extractor_name)
+larger_llm_name = "Qwen2.5-14B-Instruct"
+print(f"Loading Larger LLM ({larger_llm_name})...")
+larger_llm = UnifiedLLM(larger_llm_name)
+smaller_llm_name = "Qwen2.5-3B-Instruct"
+print(f"Loading Larger LLM ({smaller_llm_name})...")
+smaller_llm = UnifiedLLM(smaller_llm_name)
+
 
 item = None
 for tmp_item in longmemeval_data:
-    if tmp_item['question_id'] == "6b7dfb22":
+    if tmp_item['question_id'] == "gpt4_2655b836":
         item = tmp_item
         break
 
@@ -47,11 +51,11 @@ tmp_conversation = Conversation(
     id=item['question_id'],
     extract_keys=False,
     extract_facts=False,
-    llm_extractor=llm_extractor,
+    llm_extractor=larger_llm,
 )
 
 for session in tmp_conversation.sessions:
-    session.extract_session_facts(llm_extractor)
+    session.extract_session_facts(larger_llm)
 
 print(tmp_conversation)
 for session in tmp_conversation.sessions:
@@ -88,13 +92,13 @@ sorted_sessions = reorganize_evidence_sessions(my_evidence_sessions,)
 
 
 print("Loading Reader...")
-reader = PlainReader("Qwen2.5-14B-Instruct")
+reader = PlainReader(reader_llm=larger_llm)
 
 system_answer = reader.get_answer("session", sorted_sessions, current_question)
 
 print("Loading LLM Judge...")
-llm_judge = LLMJudge()
-judgement = llm_judge.judge(current_question, current_answer, system_answer)
+judge = LLMJudge(llm_judge=smaller_llm)
+judgement = judge.judge(current_question, current_answer, system_answer)
 
 
 print("-"*60)

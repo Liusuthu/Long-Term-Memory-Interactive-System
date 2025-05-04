@@ -11,11 +11,8 @@ plain_reader_prompt = "Below is a transcript of a conversation between a human u
 
 class PlainReader():
     "Simply use the retrieved text as input"
-    def __init__(self, model_name="Qwen2.5-7B-Instruct"):
-        self.llm = None
-        self.model_name = model_name
-        
-        self.llm = UnifiedLLM(model_name)
+    def __init__(self, reader_llm:UnifiedLLM):
+        self.reader_model = reader_llm
     
 
     def get_answer(self, retrieval_type, retrieval_list, question):
@@ -32,7 +29,7 @@ class PlainReader():
         elif retrieval_type == "session":
             context = session2context(retrieval_list)
             messages = get_messages(normal_system_prompt, plain_reader_prompt.format(context, question))
-            result = self.llm.generate(messages)
+            result = self.reader_model.generate(messages)
             return result
         elif retrieval_type == "hybrid":
             ...
@@ -45,13 +42,10 @@ class PlainReader():
 
 class CoNReader():
     "First filter the retrieved chunks, then get answer."
-    def __init__(self, model_name="Qwen2.5-3B-Instruct"):
-        self.llm = None
-        self.model_name = model_name
+    def __init__(self, reader_llm:UnifiedLLM):
+        self.reader_model = reader_llm
         
-        # Load reader model
-        self.llm = UnifiedLLM(model_name)
-        
+
 
 
     def get_answer(self, retrieval_type, retrieval_list):
