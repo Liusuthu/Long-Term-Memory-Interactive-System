@@ -1,4 +1,6 @@
 # Long-Term-Memory-Interactive-System
-Long-term human2AI interactive system.
+Long-term Human2AI interactive system.
 
 Building step by step now!
+
+· 2025/05/04: Primary Pipeline Finished 🎉

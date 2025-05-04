@@ -32,7 +32,7 @@ llm_extractor = UnifiedLLM(extractor_name)
 
 item = None
 for tmp_item in longmemeval_data:
-    if tmp_item['question_id'] == "gpt4_2655b836":
+    if tmp_item['question_id'] == "4f54b7c9":
         item = tmp_item
         break
 
