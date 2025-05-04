@@ -9,7 +9,8 @@
     针对某一question，按照不同的策略将其转化为要用的query(暂时使用question本身)✅⭕️
     按照指定好的query，遍历container结构寻找相似度最高的部分（颗粒度：session✅/round/hybrid）
     寻找后返回chunks，输入给reader进行处理操作，最终得到回答✅
-    Optional：使用scheduler看看是否还需要更换query重新检索⭕️
+    Advanced：使用scheduler看看是否还需要更换query重新检索⭕️
+    Judge: Use LLM as Judge ⭕️
 
 评价指标：⭕️
     1️⃣检索命中率
