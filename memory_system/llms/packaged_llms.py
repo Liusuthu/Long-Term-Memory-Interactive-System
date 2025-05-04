@@ -4,6 +4,10 @@ from llms.open_sourced import load_llm_model, load_qwen3_model, llm_generate, qw
 from llms.close_sourced import get_client, get_response
 
 
+normal_system_prompt = "You are a supportive AI assistant, focused on helping the user accomplish their tasks by following instructions carefully and precisely."
+
+
+
 # Message-Formatter
 def get_messages(system_prompt, user_prompt):
     messages = [

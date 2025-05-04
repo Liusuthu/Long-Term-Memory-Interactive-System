@@ -92,11 +92,14 @@ reader = PlainReader("Qwen2.5-14B-Instruct")
 
 system_answer = reader.get_answer("session", sorted_sessions, current_question)
 
+print("Loading LLM Judge...")
+llm_judge = LLMJudge()
+judgement = llm_judge.judge(current_question, current_answer, system_answer)
 
 
 print("-"*60)
 print(f"QUESTION   : {current_question}")
 print(f"GT ANSWER  : {current_answer}")
 print(f"SYS ANSWER : {system_answer}")
-print(f"LLM JUDGE  : TODO...")
+print(f"LLM JUDGE  : {judgement}")
 print("-"*60)
