@@ -32,7 +32,7 @@ llm_extractor = UnifiedLLM(extractor_name)
 
 item = None
 for tmp_item in longmemeval_data:
-    if tmp_item['question_id'] == "4f54b7c9":
+    if tmp_item['question_id'] == "6b7dfb22":
         item = tmp_item
         break
 
@@ -101,5 +101,6 @@ print("-"*60)
 print(f"QUESTION   : {current_question}")
 print(f"GT ANSWER  : {current_answer}")
 print(f"SYS ANSWER : {system_answer}")
+print("-"*60)
 print(f"LLM JUDGE  : {judgement}")
 print("-"*60)
