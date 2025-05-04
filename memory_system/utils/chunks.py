@@ -1,9 +1,11 @@
 "Some functions to process retrieved chunks."
 from utils.dates import compare_dates, date2datetime
 
-def integrate_same_sessions(top_k_sessions_ids:list):
+def integrate_same_sessions(top_k_sessions_ids:list, num = 5):
     integrated_session_ids = []
     for session_id in top_k_sessions_ids:
+        if len(integrated_session_ids) >= num: # 避免过多
+            return integrated_session_ids
         if session_id not in integrated_session_ids:
             integrated_session_ids.append(session_id)
     return integrated_session_ids

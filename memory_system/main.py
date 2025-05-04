@@ -5,6 +5,7 @@ from container.memory_container import Round, Session, Conversation
 from llms.packaged_llms import UnifiedLLM, get_messages
 from reader.reader import PlainReader, CoNReader
 from retriever.retriever import Retriever
+from judge.llm_as_judge import LLMJudge
 from termcolor import colored
 from utils.chunks import integrate_same_sessions, reorganize_evidence_sessions, session2context
 from utils.dates import date2datetime
@@ -31,7 +32,7 @@ llm_extractor = UnifiedLLM(extractor_name)
 
 item = None
 for tmp_item in longmemeval_data:
-    if tmp_item['question_id'] == "0f05491a":
+    if tmp_item['question_id'] == "f685340e_abs":
         item = tmp_item
         break
 
@@ -76,14 +77,14 @@ for i in range(len(top_k_scores)):
 
 # Stage 4: Read and Answer
 print("-"*40 + " Stage 4: Read and Answer " +"-"*40)
-integrated_sids = integrate_same_sessions(top_k_sids)
+integrated_sids = integrate_same_sessions(top_k_sids, num = 5)
 my_evidence_sessions = []
 for sid in integrated_sids:
     for session in tmp_conversation.sessions:
         if session.session_id == sid:
             my_evidence_sessions.append(session)
             break
-sorted_sessions = reorganize_evidence_sessions(my_evidence_sessions)
+sorted_sessions = reorganize_evidence_sessions(my_evidence_sessions,)
 
 
 print("Loading Reader...")
@@ -97,4 +98,5 @@ print("-"*60)
 print(f"QUESTION   : {current_question}")
 print(f"GT ANSWER  : {current_answer}")
 print(f"SYS ANSWER : {system_answer}")
+print(f"LLM JUDGE  : TODO...")
 print("-"*60)

@@ -68,4 +68,4 @@ def compare_dates(date_1, date_2):
 
 
 
-print(compare_dates("2028/03/26 (Sun) 22:45", "2024/08/27 (Sun) 10:45"))
+# print(compare_dates("2028/03/26 (Sun) 22:45", "2024/08/27 (Sun) 10:45"))
