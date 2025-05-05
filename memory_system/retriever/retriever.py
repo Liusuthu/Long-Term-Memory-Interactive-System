@@ -53,13 +53,17 @@ class Retriever():
                 for session in conversation.sessions:
                     session.session_facts_emb = []
                     for fact in session.session_facts:
-                        emb = self.get_openai_embedding(fact)
-                        session.session_facts_emb.append(emb)
+                        try:
+                            emb = self.get_openai_embedding(fact)
+                            session.session_facts_emb.append(emb)
+                        except Exception as e:
+                            print(f"[Embedding Error] Failed to embed fact: {fact}")
+                            print(f"[Exception] {e}")
             elif server=="zhipu":
                 for session in conversation.sessions:
                     session.session_facts_emb = []
                     for fact in session.session_facts:
-                        emb = self.get_zhipu_embedding(fact)
+                        emb = self.get_zhipu_embedding(str(fact))
                         session.session_facts_emb.append(emb)
             else:
                 ValueError(f"Embedding server {server} not supported yet.")

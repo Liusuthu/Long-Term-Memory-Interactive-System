@@ -1,6 +1,7 @@
 "The full process of Long-Term Memory Question-Answering."
 
 import json
+import os
 from container.memory_container import Round, Session, Conversation
 from llms.packaged_llms import UnifiedLLM, get_messages
 from reader.reader import PlainReader, CoNReader
@@ -11,6 +12,7 @@ from utils.chunks import integrate_same_sessions, reorganize_evidence_sessions, 
 from utils.dates import date2datetime
 ... # Maybe more modules in the future
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 # Stage 1: Load Data
 print("-"*40 + " Stage 1: Load Data " +"-"*40)
@@ -36,11 +38,9 @@ smaller_llm = UnifiedLLM(smaller_llm_name)
 
 item = None
 for tmp_item in longmemeval_data:
-    if tmp_item['question_id'] == "gpt4_2655b836":
+    if tmp_item['question_id'] == "1da05512":
         item = tmp_item
         break
-
-# item = longmemeval_data[0]
 
 print("Initializing Conversation...")
 tmp_conversation = Conversation(
@@ -67,8 +67,9 @@ print("-"*40 + " Stage 3: Retrieval " +"-"*40)
 retriever = Retriever()
 current_question = item["question"]
 current_answer = item["answer"]
+question_date = item["question_date"]
 
-retriever.compute_emb_for_conversation(tmp_conversation,)
+retriever.compute_emb_for_conversation(tmp_conversation, strategy='session_facts', server='openai')
 print("Emb computation finished...")
 retriever.compute_scores_for_conversation(current_question, tmp_conversation,)
 print("Score computation finished...")
@@ -93,18 +94,17 @@ sorted_sessions = reorganize_evidence_sessions(my_evidence_sessions,)
 
 print("Loading Reader...")
 reader = PlainReader(reader_llm=larger_llm)
-
-system_answer = reader.get_answer("session", sorted_sessions, current_question)
+system_answer = reader.get_answer("session", sorted_sessions, current_question, question_date)
 
 print("Loading LLM Judge...")
 judge = LLMJudge(llm_judge=smaller_llm)
 judgement = judge.judge(current_question, current_answer, system_answer)
 
 
-print("-"*60)
+print("-"*100)
 print(f"QUESTION   : {current_question}")
 print(f"GT ANSWER  : {current_answer}")
 print(f"SYS ANSWER : {system_answer}")
-print("-"*60)
-print(f"LLM JUDGE  : {judgement}")
-print("-"*60)
+print("-"*100)
+print(f"LLM JUDGE  : \n{judgement}")
+print("-"*100)

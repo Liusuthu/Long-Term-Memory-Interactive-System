@@ -10,7 +10,8 @@
     按照指定好的query，遍历container结构寻找相似度最高的部分（颗粒度：session✅/round/hybrid）
     寻找后返回chunks，输入给reader进行处理操作，最终得到回答✅
     Advanced：使用scheduler看看是否还需要更换query重新检索⭕️
-    Judge: Use LLM as Judge ⭕️
+    Judge: Use LLM as Judge ✅
+    考虑使用本地的Embedding Model，不知道是否能省钱？但是OpenAI的emb模型花不了多少钱。
 
 评价指标：⭕️
     1️⃣检索命中率
@@ -22,6 +23,16 @@
 ⚠️注：如果要创造一个self_motivated_and_scheduled的系统的话，画好流程图，规划好planner和scheduler的固定输出和预计内容子集很重要。
     这也是后续工作的努力方向。
 
+
+一些小结论：
+    对于larger model，使用7B和14B的差别：14B能让效果好很多，包括提取fact的能力，以及最终总结生成答案的能力；换成7B准确率直线下降。而且指令跟随能力差容易报错。
+    如果用32B呢？会不会强悍爆表？——运行太久了！！！！
+    使用本地Emb函数与OpenAI的Emb函数哪个更好一些：
+
+
+初步试验后的下一步计划：
+    改进提示词，针对部分问题进行优化处理
+    考虑引入planner，分析问题后生成一个可行的解决路径（甚至可以结合小llm微调，体现定制化），重点在于对不同问题采取不同策略
 
 
 export PYTHONPATH=$PYTHONPATH:/home/limusheng/Long-Term-Memory-Interactive-System
