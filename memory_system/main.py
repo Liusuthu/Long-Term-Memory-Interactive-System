@@ -38,7 +38,7 @@ smaller_llm = UnifiedLLM(smaller_llm_name)
 
 item = None
 for tmp_item in longmemeval_data:
-    if tmp_item['question_id'] == "6ae235be":
+    if tmp_item['question_id'] == "118b2229":
         item = tmp_item
         break
 
