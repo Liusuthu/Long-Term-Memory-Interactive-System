@@ -32,7 +32,7 @@ larger_llm_name = "Qwen2.5-14B-Instruct"
 print(f"Loading Larger LLM ({larger_llm_name})...")
 larger_llm = UnifiedLLM(larger_llm_name)
 smaller_llm_name = "Qwen2.5-3B-Instruct"
-print(f"Loading Larger LLM ({smaller_llm_name})...")
+print(f"Loading Smaller LLM ({smaller_llm_name})...")
 smaller_llm = UnifiedLLM(smaller_llm_name)
 
 

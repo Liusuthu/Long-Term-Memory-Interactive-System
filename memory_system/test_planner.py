@@ -5,7 +5,6 @@ import json
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
-print("-"*40 + " Stage 1: Load Data " +"-"*40)
 data_path = "../data/longmemeval_oracle"
 with open(data_path, "r") as f:
     longmemeval_data = json.load(f)
@@ -16,10 +15,10 @@ my_planner = Planner(LLM)
 
 count = 0
 correct_count = 0
-question_type = "multi-session"
+question_type = ["single-session-user","multi-session","temporal-reasoning","knowledge-update"]
 
 for item in longmemeval_data:
-    if item['question_type'] == question_type:
+    if item['question_type'] in question_type:
         count += 1
         test_question = item['question']
         result = my_planner.get_question_type(test_question)
