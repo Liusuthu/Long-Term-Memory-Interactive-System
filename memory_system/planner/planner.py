@@ -3,7 +3,7 @@
 from llms.packaged_llms import UnifiedLLM, get_messages
 from container.memory_container import normal_system_prompt
 
-# 需要给一个action的约束集合，这个集合最好是通过想象+分析题目得到。
+# TODO: 需要给一个action的约束集合，这个集合最好是通过想象+分析题目得到。
 
 classify_question_prompt = """
 In a long-term User-Assistant conversation background, you will be provided with a question, your task is to classify this question into one of three types: Fact, Preference, Assistant. Their definitions are below:
@@ -42,6 +42,19 @@ Type: (According to the information above, classify into one of Fact, Preference
 """
 
 
+time_range_prompt="""
+You will be given a question from a human user asking about some prvious events, as well as the time the question is asked. Infer a potential time range such that the events happening in this range is likely to help to answer the question (a start date and an end date). Write a dict with two fields: ”start” and ”end” representing start and end date. Write the date in the form YYYY/MM/DD. If the question does not have any temporal reference, do not attempt to guess a time range, just say N/A.”
+
+Here are some examples:
+
+
+Question: {}
+Question time: {}
+
+Your inferred time range: (don't generate anything else except the dict and N/A)
+"""
+
+
 class Planner:
     "An LLM Agent That Helps Generate The Problem-Solution Trajectory."
     def __init__(self, core_model:UnifiedLLM):
@@ -52,3 +65,8 @@ class Planner:
         result = self.llm.generate(messages)
         return result
     
+    def get_time_range(self, question, question_date):
+        "The prompt is adapted from LongMemEval Query Expansion."
+        messages = get_messages(normal_system_prompt, time_range_prompt.format(question, question_date))
+        result = self.llm.generate(messages)
+        return result

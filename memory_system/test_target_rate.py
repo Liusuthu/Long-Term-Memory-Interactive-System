@@ -15,7 +15,7 @@ from utils.dates import date2datetime
 from utils.target import get_target
 ... # Maybe more modules in the future
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 # Stage 1: Load Data
 print("-"*40 + " Stage 1: Load Data " +"-"*40)
@@ -38,12 +38,17 @@ larger_llm = UnifiedLLM(larger_llm_name)
 
 
 # 分不同问题类别进行测试命中情况(命中率)
-question_type = ["single-session-user"]
+question_type = ["temporal-reasoning"]
 retriever = Retriever()
 total_count = 0
+
 fully_target_count = 0
 partly_target_count = 0
 no_target_count = 0
+
+top5_fully_target_count = 0
+top5_partly_target_count = 0
+top5_no_target_count = 0
 
 item = None
 for tmp_item in longmemeval_data:
@@ -81,8 +86,21 @@ for tmp_item in longmemeval_data:
             partly_target_count += 1
         elif target_result == "no-target":
             no_target_count += 1
-        print(f"Target Result of Order {total_count} is: {target_result}.")
+        
+        print(f"[Top10] Target Result of Order {total_count} is: {target_result}.")
+        print(f"[Top10] Right Now: \nTotal: {total_count} \nFully Target: {fully_target_count} \nPartly Target: {partly_target_count} \nNo Target: {no_target_count}")
 
-print(f"The Final Retrieval Target Results: \nTotal: {total_count} \nFully Target: {fully_target_count} \nPartly Target: {partly_target_count} \nNo Target: {no_target_count}")
+        top5_target_result = get_target(evidence_session_ids, top_k_sids[0:5])
+        if top5_target_result == "fully-target":
+            top5_fully_target_count += 1
+        elif top5_target_result == "partly-target":
+            top5_partly_target_count += 1
+        elif top5_target_result == "no-target":
+            top5_no_target_count += 1
+        
+        print(f"[Top5] Target Result of Order {total_count} is: {top5_target_result}.")
+        print(f"[Top5] Right Now: \nTotal: {total_count} \nFully Target: {top5_fully_target_count} \nPartly Target: {top5_partly_target_count} \nNo Target: {top5_no_target_count}")
 
 
+print(f"[Top10] The Final Retrieval Target Results: \nTotal: {total_count} \nFully Target: {fully_target_count} \nPartly Target: {partly_target_count} \nNo Target: {no_target_count}")
+print(f"[Top5] The Final Retrieval Target Results: \nTotal: {total_count} \nFully Target: {top5_fully_target_count} \nPartly Target: {top5_partly_target_count} \nNo Target: {top5_no_target_count}")
