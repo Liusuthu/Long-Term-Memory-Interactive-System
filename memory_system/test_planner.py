@@ -11,7 +11,7 @@ with open(data_path, "r") as f:
     longmemeval_data = json.load(f)
 print(f"Dataset(path: {data_path}) is loaded. Total number of samples: {len(longmemeval_data)}.")
 
-LLM = UnifiedLLM("Qwen2.5-7B-Instruct")
+LLM = UnifiedLLM("Qwen2.5-14B-Instruct")
 my_planner = Planner(LLM)
 
 

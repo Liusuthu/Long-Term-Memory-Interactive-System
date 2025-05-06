@@ -43,15 +43,45 @@ Type: (According to the information above, classify into one of Fact, Preference
 
 
 time_range_prompt="""
-You will be given a question from a human user asking about some prvious events, as well as the time the question is asked. Infer a potential time range such that the events happening in this range is likely to help to answer the question (a start date and an end date). Write a dict with two fields: ”start” and ”end” representing start and end date. Write the date in the form YYYY/MM/DD. If the question does not have any temporal reference, do not attempt to guess a time range, just say N/A.”
+You will be given a question from a human user asking about some prvious events, as well as the time the question is asked. Infer a potential time range such that the events happening in this range is likely to help to answer the question (a start date and an end date). Write a dict with two fields: ”start” and ”end” representing start and end date. Write the date in the form YYYY/MM/DD. If the question does not have any temporal reference, do not attempt to guess a time range, just say N/A. You can allow some flexible expansion in your inferred time range.
 
-Here are some examples:
-
+Here are some examples: 
+{}
 
 Question: {}
-Question time: {}
+Question Time: {}
 
-Your inferred time range: (don't generate anything else except the dict and N/A)
+Inferred Time Range: (don't generate anything else except the dict and N/A)
+"""
+
+time_range_examples = """
+Question: What kitchen appliance did I buy 10 days ago?
+Question Time: 2023/03/25 (Sat) 18:04
+Inferred Time Range: {"start": "2023/03/14", "end": "2023/03/25"}
+
+Question: What did I do with Rachel on the Wednesday two months ago?
+Question Time: 2023/04/01 (Sat) 20:22
+Inferred Time Range: {"start": "2023/01/31", "end": "2023/02/06"}
+
+Question: I mentioned cooking something for my friend a couple of days ago. What was it?
+Question Time: 2022/04/12 (Tue) 13:26
+Inferred Time Range: {"start": "2022/04/09", "end": "2022/04/12"}
+
+Question: Which pair of shoes did I clean last month?
+Question Time: 2023/05/30 (Tue) 01:50
+Inferred Time Range: {"start": "2023/03/30", "end": "2023/05/30"}
+
+Question: What was the social media activity I participated 5 days ago?
+Question Time: 2023/03/20 (Mon) 05:50
+Inferred Time Range: {"start": "2023/03/15", "end": "2023/03/20"}
+
+Question: Where did I attend the religious activity last week?
+Question Time: 2023/04/10 (Mon) 08:05
+Inferred Time Range: {"start": "2023/03/31", "end": "2023/04/10"}
+
+Question: How many weeks ago did I start using the cashback app 'Ibotta'?
+Question Time: 2023/05/06 (Sat) 05:25
+Inferred Time Range: {"start": "2023/03/18", "end": "2023/05/06"}
 """
 
 
@@ -67,6 +97,7 @@ class Planner:
     
     def get_time_range(self, question, question_date):
         "The prompt is adapted from LongMemEval Query Expansion."
-        messages = get_messages(normal_system_prompt, time_range_prompt.format(question, question_date))
+        messages = get_messages(normal_system_prompt, time_range_prompt.format(time_range_examples, question, question_date))
         result = self.llm.generate(messages)
         return result
+        # 观察到time range可能并不是特别准确或者可能有偏差，可以提取后人工手动前后添加几天/月

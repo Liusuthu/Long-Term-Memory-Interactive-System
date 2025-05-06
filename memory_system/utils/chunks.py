@@ -25,7 +25,7 @@ def session2context(evidence_sessions:list, process_type="raw"):
     context = ""
     if process_type == 'raw':
         for idx, session in enumerate(evidence_sessions):
-            context += f"Session {idx}:\n" + f"Session date: {date2datetime(session.session_date)}\n"
+            context += f"Session {idx}:\n" + f"Session date: {session.session_date}\n" # 先不转化为datetime格式，保留周几信息
             context += session.get_session_str()
             context += "-"*60 + '\n'
         return context
