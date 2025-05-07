@@ -15,7 +15,7 @@ from utils.dates import date2datetime
 from utils.target import get_target
 ... # Maybe more modules in the future
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
 # Stage 1: Load Data
 print("-"*40 + " Stage 1: Load Data " +"-"*40)
@@ -38,25 +38,23 @@ larger_llm = UnifiedLLM(larger_llm_name)
 
 
 # 分不同问题类别进行测试命中情况(命中率)
-question_type = ["single-session-user"]
+question_type = ["multi-session"]
 retriever = Retriever()
 total_count = 0
 
-fully_target_count = 42
+fully_target_count = 0
 partly_target_count = 0
-no_target_count = 1
+no_target_count = 0
 
-top5_fully_target_count = 42
+top5_fully_target_count = 0
 top5_partly_target_count = 0
-top5_no_target_count = 1
+top5_no_target_count = 0
 
 item = None
 for tmp_item in longmemeval_data:
     if tmp_item['question_type'] in question_type and "_abs" not in tmp_item['question_id']:
         item = tmp_item
         total_count += 1
-        if total_count <=43:
-            continue
         print(f"Order: {total_count}. Initializing Conversation for {tmp_item['question_id']}...")
         tmp_conversation = Conversation(
             sessions=item['haystack_sessions'],
@@ -89,6 +87,7 @@ for tmp_item in longmemeval_data:
         elif target_result == "no-target":
             no_target_count += 1
         
+        print(item['question_type'])
         print(f"[Top10] Target Result of Order {total_count} is: {target_result}.")
         print(f"[Top10] Right Now: \nTotal: {total_count} \nFully Target: {fully_target_count} \nPartly Target: {partly_target_count} \nNo Target: {no_target_count}")
 

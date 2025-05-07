@@ -11,14 +11,14 @@ with open(data_path, "r") as f:
     longmemeval_data = json.load(f)
 print(f"Dataset(path: {data_path}) is loaded. Total number of samples: {len(longmemeval_data)}.")
 
-LLM = UnifiedLLM("Qwen2.5-14B-Instruct")
+LLM = UnifiedLLM("Qwen2.5-3B-Instruct")
 my_planner = Planner(LLM)
 
 
 
 # Test Time Range Inference
 for item in longmemeval_data:
-    if item['question_type'] not in ['temporal-reasoning']:
+    if item['question_type'] not in ['single-session-assistant']:
         continue
     question = item['question']
     question_date = str(item['question_date'])
@@ -27,7 +27,7 @@ for item in longmemeval_data:
 
     print("-"*100)
     print(f"Question Type: {question_type}\nQuestion: {question}\nDate: {question_date}\nInferred Time Range: {inferred_date}")
-
+# 感觉幻觉问题太严重了..
 
 
 
