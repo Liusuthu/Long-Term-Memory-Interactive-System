@@ -5,7 +5,8 @@ from dotenv import load_dotenv
 from container.memory_container import Conversation
 import os
 import heapq
-
+import torch
+from retriever.local_emb_qwen import get_qwen_embedding
 
 os.environ["http_proxy"] = "http://127.0.0.1:37890"
 os.environ["https_proxy"] = "http://127.0.0.1:37890"
@@ -22,24 +23,42 @@ class Retriever():
     "Contains all retrieval-related functions. Used as a integrated function base."
     def __init__(self,):
         self.openai_client = client
-        self.zhipu_clietn = zhipu_client
+        self.zhipu_client = zhipu_client
 
 
     def get_openai_embedding(self, text, model="text-embedding-ada-002"):
         """
+        Support both str and list of str.
         Args:
             model (str): Choose from `text-embedding-3-small`(1536), `text-embedding-3-large`(3072), `text-embedding-ada-002`(1536).
         """
-        text = text.replace("\n", " ")
-        return self.openai_client.embeddings.create(input = [text], model=model).data[0].embedding
+        if isinstance(text, str):
+            process_text = text.replace("\n", " ")
+            return self.openai_client.embeddings.create(input = process_text, model=model).data[0].embedding
+        elif isinstance(text, list):
+            process_text=[]
+            for t in text:
+                process_text.append(t.replace("\n", " "))
+            response_data = self.openai_client.embeddings.create(input = process_text, model=model).data
+            emb_list = [data.embedding for data in response_data]
+            return emb_list
 
     def get_zhipu_embedding(self, text, model="embedding-2"):
         """
+        Support both str and list of str.
         Args:
             model (str): Choose from `embedding-3`(2048), `embedding-2`(1024).
         """
-        text = text.replace("\n", " ")
-        return self.zhipu_client.embeddings.create(input = [text], model=model).data[0].embedding
+        if isinstance(text, str):
+            process_text = text.replace("\n", " ")
+            return self.zhipu_client.embeddings.create(input = process_text, model=model).data[0].embedding
+        elif isinstance(text, list):
+            process_text=[]
+            for t in text:
+                process_text.append(t.replace("\n", " "))
+            response_data = self.zhipu_client.embeddings.create(input = process_text, model=model).data
+            emb_list = [data.embedding for data in response_data]
+            return emb_list
 
 
     def question2query(self, question):
@@ -52,19 +71,40 @@ class Retriever():
             if server=="openai":
                 for session in conversation.sessions:
                     session.session_facts_emb = []
-                    for fact in session.session_facts:
-                        try:
-                            emb = self.get_openai_embedding(fact)
-                            session.session_facts_emb.append(emb)
-                        except Exception as e:
-                            print(f"[Embedding Error] Failed to embed fact: {fact}")
-                            print(f"[Exception] {e}")
+                    try:
+                        if len(session.session_facts)==0:
+                            continue
+                        batch_emb = self.get_openai_embedding(session.session_facts)
+                        session.session_facts_emb = batch_emb
+                    except Exception as e:
+                        print(f"[Embedding Error] Failed to embed session facts: {session.session_facts}")
+                        print(f"[Exception] {e}")
+                # for session in conversation.sessions:
+                #     session.session_facts_emb = []
+                #     for fact in session.session_facts:
+                #         try:
+                #             emb = self.get_openai_embedding(fact)
+                #             session.session_facts_emb.append(emb)
+                #         except Exception as e:
+                #             print(f"[Embedding Error] Failed to embed fact: {fact}")
+                #             print(f"[Exception] {e}")
             elif server=="zhipu":
                 for session in conversation.sessions:
                     session.session_facts_emb = []
                     for fact in session.session_facts:
                         emb = self.get_zhipu_embedding(str(fact))
                         session.session_facts_emb.append(emb)
+            elif server=="qwen":
+                for session in conversation.sessions:
+                    session.session_facts_emb = []
+                    try:
+                        if len(session.session_facts)==0:
+                            continue
+                        batch_emb = get_qwen_embedding(session.session_facts)
+                        session.session_facts_emb = batch_emb
+                    except Exception as e:
+                        print(f"[Embedding Error] Failed to embed session facts: {session.session_facts}")
+                        print(f"[Exception] {e}")
             else:
                 ValueError(f"Embedding server {server} not supported yet.")
         else:
@@ -85,16 +125,38 @@ class Retriever():
                     session.session_facts_scores = []
                     for fact_emb in session.session_facts_emb:
                         session.session_facts_scores.append(self.compute_similarity(fact_emb, query_emb))
+            elif server=="qwen":
+                query_emb = get_qwen_embedding(query)
+                for session in conversation.sessions:
+                    session.session_facts_scores = []
+                    for fact_emb in session.session_facts_emb:
+                        session.session_facts_scores.append(self.compute_similarity(fact_emb, query_emb))
             else:
                 ValueError(f"Embedding server {server} not supported yet.")
         else:
             raise ValueError(f"Stragtegy {strategy} not supported yet.")
 
 
-    def compute_similarity(self,emb1, emb2):
-        norm_emb1 = np.linalg.norm(emb1)
-        norm_emb2 = np.linalg.norm(emb2)
-        return np.dot(emb1, emb2) / (norm_emb1 * norm_emb2)
+    def compute_similarity(self, emb1, emb2):
+        if isinstance(emb1, list) and isinstance(emb2, list):
+            emb1 = np.array(emb1)
+            emb2 = np.array(emb2)
+
+        if isinstance(emb1, np.ndarray) and isinstance(emb2, np.ndarray):
+            norm_emb1 = np.linalg.norm(emb1)
+            norm_emb2 = np.linalg.norm(emb2)
+            return float(np.dot(emb1, emb2) / (norm_emb1 * norm_emb2 + 1e-8))  # 防止除以0
+
+        elif isinstance(emb1, torch.Tensor) and isinstance(emb2, torch.Tensor):
+            emb1 = emb1.flatten()
+            emb2 = emb2.flatten()
+            norm_emb1 = torch.norm(emb1)
+            norm_emb2 = torch.norm(emb2)
+            return float(torch.dot(emb1, emb2) / (norm_emb1 * norm_emb2 + 1e-8))  # 防止除以0
+
+        else:
+            raise TypeError("emb1 and emb2 must be both list, numpy.ndarray, or torch.Tensor")
+
 
 
 
