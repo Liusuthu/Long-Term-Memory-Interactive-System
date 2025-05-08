@@ -4,6 +4,9 @@
 
 import json
 import os
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+
 from container.memory_container import Round, Session, Conversation
 from llms.packaged_llms import UnifiedLLM, get_messages
 from reader.reader import PlainReader, CoNReader
@@ -13,9 +16,10 @@ from termcolor import colored
 from utils.chunks import integrate_same_sessions, reorganize_evidence_sessions, session2context
 from utils.dates import date2datetime
 from utils.target import get_target
+import torch
 ... # Maybe more modules in the future
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+
 
 # Stage 1: Load Data
 print("-"*40 + " Stage 1: Load Data " +"-"*40)
@@ -38,7 +42,7 @@ larger_llm = UnifiedLLM(larger_llm_name)
 
 
 # 分不同问题类别进行测试命中情况(命中率)
-question_type = ["multi-session"]
+question_type = ["single-session-preference"]
 retriever = Retriever()
 total_count = 0
 
@@ -74,7 +78,7 @@ for tmp_item in longmemeval_data:
         evidence_session_ids = item["answer_session_ids"]
         print("Emb computation...")
         retriever.compute_emb_for_conversation(tmp_conversation, strategy='session_facts', server='openai')
-        retriever.compute_scores_for_conversation(current_question, tmp_conversation,)
+        retriever.compute_scores_for_conversation(current_question, tmp_conversation, server='openai')
         top_k_facts, top_k_scores, top_k_sids = retriever.get_top_k(tmp_conversation,)
 
         for i in range(len(top_k_scores)):

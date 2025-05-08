@@ -12,7 +12,7 @@ from utils.chunks import integrate_same_sessions, reorganize_evidence_sessions, 
 from utils.dates import date2datetime
 ... # Maybe more modules in the future
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
 
 # Stage 1: Load Data
 print("-"*40 + " Stage 1: Load Data " +"-"*40)

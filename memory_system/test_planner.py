@@ -4,7 +4,7 @@ from utils.dates import date2datetime
 import os
 import json
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
 data_path = "../data/longmemeval_oracle"
 with open(data_path, "r") as f:

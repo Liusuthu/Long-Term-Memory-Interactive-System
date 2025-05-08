@@ -11,7 +11,7 @@
     寻找后返回chunks，输入给reader进行处理操作，最终得到回答✅
     Advanced：使用scheduler看看是否还需要更换query重新检索⭕️
     Judge: Use LLM as Judge ✅
-    考虑使用本地的Embedding Model，不知道是否能省钱？但是OpenAI的emb模型花不了多少钱。
+    考虑使用本地的Embedding Model，不知道是否能省钱？但是OpenAI的emb模型花不了多少钱。✅
 
 评价指标：⭕️
     1️⃣检索命中率
@@ -27,7 +27,7 @@
 一些小结论：
     对于larger model，使用7B和14B的差别：14B能让效果好很多，包括提取fact的能力，以及最终总结生成答案的能力；换成7B准确率直线下降。而且指令跟随能力差容易报错。
     如果用32B呢？会不会强悍爆表？——运行太久了！！！！
-    使用本地Emb函数与OpenAI的Emb函数哪个更好一些：
+    使用本地Emb函数与OpenAI的Emb函数哪个更好一些：本地Emb可以并行计算，效率高✅ 但是显存占用太大了，一次要两张卡。
 
 
 初步试验后的下一步计划：
@@ -36,8 +36,10 @@
     改进Judge的评判机制，优化判决结果✅
     考虑引入planner，分析问题后生成一个可行的解决路径（甚至可以结合小llm微调，体现定制化），重点在于对不同问题采取不同策略✅⭕️
     [Try] 针对推理缓慢的问题，开启多线程推理？可以节约时间。
+    OpenAI的Emb API也可以Batch获取，会让计算时间下降。
 
-
+💡 想法：
+    蹭一下MoE：训练一个分类网络，路由到不同的Agent专家进行处理问题
 
 
 export PYTHONPATH=$PYTHONPATH:/home/limusheng/Long-Term-Memory-Interactive-System
