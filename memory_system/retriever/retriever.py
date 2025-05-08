@@ -40,9 +40,11 @@ class Retriever():
             for t in text:
                 process_text.append(t.replace("\n", " "))
             response_data = self.openai_client.embeddings.create(input = process_text, model=model).data
-            emb_list = [data.embedding for data in response_data]
+            emb_list = [data.embedding for data in response_data] 
             return emb_list
-
+        else:
+            raise TypeError(f"Unsupported input type for embedding: {type(text)}")
+        
     def get_zhipu_embedding(self, text, model="embedding-2"):
         """
         Support both str and list of str.
@@ -79,6 +81,7 @@ class Retriever():
                     except Exception as e:
                         print(f"[Embedding Error] Failed to embed session facts: {session.session_facts}")
                         print(f"[Exception] {e}")
+                        session.session_facts_emb = []
                 # for session in conversation.sessions:
                 #     session.session_facts_emb = []
                 #     for fact in session.session_facts:
@@ -116,6 +119,10 @@ class Retriever():
             if server=="openai":
                 query_emb = self.get_openai_embedding(query)
                 for session in conversation.sessions:
+                    # Avoid abnormal error session.session_facts_emb == None
+                    if not hasattr(session, "session_facts_emb") or session.session_facts_emb is None:
+                        print(f"[Warning] No embeddings found for session {session.session_id}")
+                        session.session_facts_emb = []
                     session.session_facts_scores = []
                     for fact_emb in session.session_facts_emb:
                         session.session_facts_scores.append(self.compute_similarity(fact_emb, query_emb))
