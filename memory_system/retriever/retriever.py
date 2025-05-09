@@ -6,7 +6,7 @@ from container.memory_container import Conversation
 import os
 import heapq
 import torch
-from retriever.local_emb_qwen import get_qwen_embedding
+from retriever.local_emb_qwen import get_qwen_embedding, get_gte_model
 
 os.environ["http_proxy"] = "http://127.0.0.1:37890"
 os.environ["https_proxy"] = "http://127.0.0.1:37890"
@@ -21,9 +21,12 @@ zhipu_client = ZhipuAI(api_key=zhipu_api_key)
 
 class Retriever():
     "Contains all retrieval-related functions. Used as a integrated function base."
-    def __init__(self,):
+    def __init__(self, server="openai"):
         self.openai_client = client
         self.zhipu_client = zhipu_client
+        self.server = server
+        if server == 'qwen':
+            self.tokenizer, self.model = get_gte_model()
 
 
     def get_openai_embedding(self, text, model="text-embedding-ada-002"):
@@ -67,10 +70,10 @@ class Retriever():
         ...
 
 
-    def compute_emb_for_conversation(self, conversation:Conversation, strategy:str="session_facts", server:str="openai"):
+    def compute_emb_for_conversation(self, conversation:Conversation, strategy:str="session_facts",):
         "要设计好不同的strategy下计算什么embedding, 以便后面检索"
         if strategy=="session_facts":
-            if server=="openai":
+            if self.server=="openai":
                 for session in conversation.sessions:
                     session.session_facts_emb = []
                     try:
@@ -91,32 +94,32 @@ class Retriever():
                 #         except Exception as e:
                 #             print(f"[Embedding Error] Failed to embed fact: {fact}")
                 #             print(f"[Exception] {e}")
-            elif server=="zhipu":
+            elif self.server=="zhipu":
                 for session in conversation.sessions:
                     session.session_facts_emb = []
                     for fact in session.session_facts:
                         emb = self.get_zhipu_embedding(str(fact))
                         session.session_facts_emb.append(emb)
-            elif server=="qwen":
+            elif self.server=="qwen":
                 for session in conversation.sessions:
                     session.session_facts_emb = []
                     try:
                         if len(session.session_facts)==0:
                             continue
-                        batch_emb = get_qwen_embedding(session.session_facts)
+                        batch_emb = get_qwen_embedding(query_batch=session.session_facts, tokenizer=self.tokenizer, model=self.model)
                         session.session_facts_emb = batch_emb
                     except Exception as e:
                         print(f"[Embedding Error] Failed to embed session facts: {session.session_facts}")
                         print(f"[Exception] {e}")
             else:
-                ValueError(f"Embedding server {server} not supported yet.")
+                ValueError(f"Embedding server {self.server} not supported yet.")
         else:
             raise ValueError(f"Compute Embedding Stragtegy {strategy} not supported yet.")
 
 
-    def compute_scores_for_conversation(self, query, conversation:Conversation, strategy:str="session_facts", server:str="openai"):
+    def compute_scores_for_conversation(self, query, conversation:Conversation, strategy:str="session_facts", ):
         if strategy=="session_facts":
-            if server=="openai":
+            if self.server=="openai":
                 query_emb = self.get_openai_embedding(query)
                 for session in conversation.sessions:
                     # Avoid abnormal error session.session_facts_emb == None
@@ -126,20 +129,20 @@ class Retriever():
                     session.session_facts_scores = []
                     for fact_emb in session.session_facts_emb:
                         session.session_facts_scores.append(self.compute_similarity(fact_emb, query_emb))
-            elif server=="zhipu":
+            elif self.server=="zhipu":
                 query_emb = self.get_zhipu_embedding(query)
                 for session in conversation.sessions:
                     session.session_facts_scores = []
                     for fact_emb in session.session_facts_emb:
                         session.session_facts_scores.append(self.compute_similarity(fact_emb, query_emb))
-            elif server=="qwen":
-                query_emb = get_qwen_embedding(query)
+            elif self.server=="qwen":
+                query_emb = get_qwen_embedding(query,self.tokenizer, self.model)
                 for session in conversation.sessions:
                     session.session_facts_scores = []
                     for fact_emb in session.session_facts_emb:
                         session.session_facts_scores.append(self.compute_similarity(fact_emb, query_emb))
             else:
-                ValueError(f"Embedding server {server} not supported yet.")
+                ValueError(f"Embedding server {self.server} not supported yet.")
         else:
             raise ValueError(f"Stragtegy {strategy} not supported yet.")
 

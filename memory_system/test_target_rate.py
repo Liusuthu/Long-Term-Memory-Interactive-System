@@ -43,7 +43,7 @@ larger_llm = UnifiedLLM(larger_llm_name)
 
 # 分不同问题类别进行测试命中情况(命中率)
 question_type = ["knowledge-update"]
-retriever = Retriever()
+retriever = Retriever(server='openai')
 total_count = 0
 
 fully_target_count = 0
@@ -77,8 +77,8 @@ for tmp_item in longmemeval_data:
         question_date = item["question_date"]
         evidence_session_ids = item["answer_session_ids"]
         print("Emb computation...")
-        retriever.compute_emb_for_conversation(tmp_conversation, strategy='session_facts', server='openai')
-        retriever.compute_scores_for_conversation(current_question, tmp_conversation, server='openai')
+        retriever.compute_emb_for_conversation(tmp_conversation, strategy='session_facts', )
+        retriever.compute_scores_for_conversation(current_question, tmp_conversation, )
         top_k_facts, top_k_scores, top_k_sids = retriever.get_top_k(tmp_conversation,)
 
         for i in range(len(top_k_scores)):
