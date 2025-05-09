@@ -4,6 +4,9 @@
 
 import json
 import os
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+
 from container.memory_container import Round, Session, Conversation
 from llms.packaged_llms import UnifiedLLM, get_messages
 from reader.reader import PlainReader, CoNReader
@@ -15,7 +18,7 @@ from utils.dates import date2datetime
 from utils.target import get_target
 ... # Maybe more modules in the future
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+
 
 # Stage 1: Load Data
 print("-"*40 + " Stage 1: Load Data " +"-"*40)
@@ -38,7 +41,7 @@ larger_llm = UnifiedLLM(larger_llm_name)
 
 
 # 分不同问题类别进行测试命中情况(命中率)和准确率
-question_type = ["single-session-preference"]
+question_type = ["knowledge-update"]
 retriever = Retriever()
 total_count = 0
 

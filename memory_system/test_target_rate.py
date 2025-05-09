@@ -42,7 +42,7 @@ larger_llm = UnifiedLLM(larger_llm_name)
 
 
 # 分不同问题类别进行测试命中情况(命中率)
-question_type = ["single-session-preference"]
+question_type = ["knowledge-update"]
 retriever = Retriever()
 total_count = 0
 
