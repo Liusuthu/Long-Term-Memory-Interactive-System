@@ -45,3 +45,6 @@
 
 
 export PYTHONPATH=$PYTHONPATH:/home/limusheng/Long-Term-Memory-Interactive-System
+
+
+下一步安排：先大量广泛阅读Agent之类的论文吧！看看有没有好的交互式Agent的点子。
